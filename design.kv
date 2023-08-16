@@ -1,0 +1,50 @@
+<UI>:
+    MDScreen:
+        name: 'main_screen'
+        md_bg_color: 1,1,1,1
+        MDBoxLayout:
+            orientation: 'vertical'
+            MDBoxLayout:
+                size_hint: 1, 0.4
+                orientation: 'horizontal'
+                padding: '10dp'
+                MDCard:
+                    radius: '10dp'
+                    padding: '10dp'
+                    line_color: 1,0.54,0,1
+
+                    MDLabel:
+                        text: 'ADAPTIVE MODE'
+                        bold: True
+                        font_size: '20sp'
+                        font_name: 'fonts/NotoSans-Medium.ttf'
+                        halign: 'center'
+                        pos_hint: {'center_y' : 0.5}
+
+                    MDSwitch:
+                        pos_hint: {'center_y' : 0.5}
+                        on_active:
+                            app.change_mode(*args)
+
+            MDBoxLayout:
+                size_hint: 1, 0.6
+                orientation: 'horizontal'
+                padding: '10dp'
+
+                MDRectangleFlatButton:
+                    text: 'CONNECT BLUETOOTH'
+                    bold: True
+                    font_size: '20sp'
+                    font_name: 'fonts/NotoSans-Medium.ttf'
+                    halign: 'center'
+                    valign: 'center'
+                    pos_hint: {'center_y' : 0.5, 'center_x': 0.5}
+                    ripple_behavior: True
+                    on_release:
+                        app.ble_connect(*args)
+                        print("connecting...")
+
+
+
+
+
