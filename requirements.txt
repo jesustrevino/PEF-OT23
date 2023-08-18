@@ -1,3 +1,20 @@
-kivy==2.2.1
 bleak==0.20.2
+aioconsole==0.6.2
+async-timeout==4.0.3
+Kivy==2.2.1
+Kivy-Garden==0.1.5
 kivymd==1.1.1
+Pillow==10.0.0
+pip==23.2.1
+Pygments==2.16.1
+pyobjc-core== 9.2
+pyobjc-framework-Cocoa==9.2
+pyobjc-framework-CoreBluetooth==9.2
+pyobjc-framework-libdispatch==9.2
+pypng==0.20220715.0
+qrcode==7.4.2
+requests==2.31.0
+setuptools==57.0.0
+typing_extensions== 4.7.1
+urllib3==2.0.4
+wheel==0.36.2

@@ -1,50 +1,113 @@
-<UI>:
-    MDScreen:
-        name: 'main_screen'
-        md_bg_color: 1,1,1,1
+
+WindowManager:
+    MainWindow:
+    SecondaryWindow:
+
+<CircularProgressBar>:
+    canvas.before:
+        Color:
+            rgba: root.bar_bg_color + [0.3]
+        Line:
+            width: root.bar_width
+            ellipse: (self.x, self.y, self.width, self.height, root.start_value, root.end_value)
+    canvas.after:
+        Color:
+            rgb: root.bar_color
+        Line:
+            width: root.bar_width
+            ellipse: (self.x, self.y, self.width, self.height, root.start_value, root.set_value*3.6*root.tick)
+    MDLabel:
+        text: root.text
+        font_size: root.font_size
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+        halign: 'center'
+
+
+
+<MainWindow>:
+    name: 'main_window'
+    MDRectangleFlatButton:
+        id: ble_button
+        text: 'CONNECT BLUETOOTH'
+        font_size: 32
+        bold: True
+        pos_hint: {'center_x':0.5,'center_y':0.5}
+
+        on_release:
+            app.connect_ble(*args)
+            app.root.current = 'secondary_window'
+            root.manager.transition.direction = 'left'
+
+
+<SecondaryWindow>:
+    name: 'secondary_window'
+    MDBoxLayout:
+        orientation: 'vertical'
+        size: root.width, root.height
         MDBoxLayout:
+            size: root.width, root.height*0.3
             orientation: 'vertical'
-            MDBoxLayout:
-                size_hint: 1, 0.4
-                orientation: 'horizontal'
+            padding: '10dp'
+            MDCard:
+                radius: '10dp'
                 padding: '10dp'
-                MDCard:
-                    radius: '10dp'
-                    padding: '10dp'
-                    line_color: 1,0.54,0,1
-
-                    MDLabel:
-                        text: 'ADAPTIVE MODE'
-                        bold: True
-                        font_size: '20sp'
-                        font_name: 'fonts/NotoSans-Medium.ttf'
-                        halign: 'center'
-                        pos_hint: {'center_y' : 0.5}
-
-                    MDSwitch:
-                        pos_hint: {'center_y' : 0.5}
-                        on_active:
-                            app.change_mode(*args)
-
-            MDBoxLayout:
-                size_hint: 1, 0.6
-                orientation: 'horizontal'
-                padding: '10dp'
-
-                MDRectangleFlatButton:
-                    text: 'CONNECT BLUETOOTH'
+                line_color: 1,0.54,0,1
+                thickness: 10
+                MDLabel:
+                    text: 'ADAPTIVE MODE'
                     bold: True
-                    font_size: '20sp'
+                    font_size: 32
                     font_name: 'fonts/NotoSans-Medium.ttf'
                     halign: 'center'
-                    valign: 'center'
-                    pos_hint: {'center_y' : 0.5, 'center_x': 0.5}
-                    ripple_behavior: True
-                    on_release:
-                        app.ble_connect(*args)
-                        print("connecting...")
+                    pos_hint: {'center_y' : 0.5}
+                MDSwitch:
+                    id: adapt_switch
+                    pos_hint: {'center_x':.5,'center_y':.5}
+                    on_active:
+                        app.switch_state(*args)
+        MDBoxLayout:
+            size: root.width, root.height*0.2
+            orientation: 'vertical'
+            padding: '10dp'
+            MDSlider:
+                id: adapt_slider
+                min: 1
+                max: 100
+                step: 1
+                orientation: 'horizontal'
+                padding: '10dp'
+                hint: True
+                hint_text_color: 'orange'
+                hint_bg_color: 'white'
+                thumb_color_disabled: 'grey'
+                on_value:
+                    app.slider_slide(*args)
+        MDBoxLayout:
+            size: root.width, root.height*0.25
+            orientation: 'vertical'
+            CircularProgressBar:
+                id: speed
+                size_hint: None, None
+                size: 250,250
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                padding: 20
+                start_value: -90
+                end_value: 90
+                set_value: -25
+                bar_color: 1,0.54,0
+                text: '0 km/h'
+                font_size: 52
+                tick: 1
 
 
-
+        MDFloatLayout:
+            size: root.width, root.height*0.25
+            orientation: 'vertical'
+            CircularProgressBar:
+                id: circle_progress
+                size_hint: None, None
+                size: 250, 250
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                padding: 20
 
 
