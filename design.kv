@@ -35,8 +35,13 @@ WindowManager:
 
         on_release:
             app.connect_ble(*args)
-            app.root.current = 'secondary_window'
-            root.manager.transition.direction = 'left'
+
+    MDSpinner:
+        id: spinner
+        size_hint: None, None
+        size: dp(46), dp(46)
+        pos_hint: {'center_x':0.5,'center_y':0.3}
+        active: False
 
 
 <SecondaryWindow>:
