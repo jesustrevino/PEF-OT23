@@ -1,5 +1,4 @@
 from kivymd.app import MDApp
-from kivy.app import async_runTouchApp
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -7,6 +6,7 @@ from kivy.lang import Builder
 import asyncio
 from CircularProgressBar import CircularProgressBar
 from BLE import Connection, communication_manager
+from ble_client_test import Debug
 
 
 # kivy.version('1.9.0')
@@ -19,8 +19,8 @@ from Speedometer import SpeedMeter
 #loop = asyncio.new_event_loop() # Here
 #asyncio.set_event_loop(loop) # Here
 
-#ADDRESS, UUID = "78:21:84:9D:37:10", "4295124f-50e1-4d13-bf04-c5dea961600b"
-ADDRESS, UUID = "", ""
+#ADDRESS, UUID = "78:21:84:9D:37:10", "0000181a-0000-1000-8000-00805f9b34fb"
+ADDRESS, UUID = None, None
 
 class MainWindow(Screen): pass
 
@@ -59,8 +59,8 @@ class Main(MDApp):
         Button = self.root.get_screen('main_window').ids.ble_button
         if touch:
             try:
-                asyncio.create_task(run_BLE(self))
-                #asyncio.create_task(debug_BLE(self))
+                #asyncio.create_task(run_BLE(self))
+                asyncio.create_task(debug_BLE(self))
             except Exception as e:
                 print(e)
 
@@ -111,38 +111,50 @@ class Main(MDApp):
 
 async def debug_BLE(app: MDApp) -> None:
     app.root.get_screen('main_window').ids.spinner.active = True
-    for i in range(10):
+    flag = asyncio.Event()
+    try:
+        debug = Debug(flag)
+        #await debug.connected.wait()
+        await debug.flag.wait()
+    finally:
+        print(f"flag confirmed!")
+    for i in range(20):
         print(f"Other coroutine -> {i}")
         await asyncio.sleep(1)
-    app.root.current = 'secondary_window'
+    #app.root.current = 'secondary_window'
 
 async def run_BLE(app: MDApp) -> None:
     """Asyncronous connection protocol for BLE"""
     app.root.get_screen('main_window').ids.spinner.active = True
     print('in run_BLE')
-    read_char = ""
-    write_char = ""
-    connection = Connection(loop,
-                            UUID,
-                            ADDRESS,
-                            read_char,
-                            write_char)
+    read_char = "00002A3D-0000-1000-8000-00805f9b34fb"
+    write_char = "00002A58-0000-1000-8000-00805f9b34fb"
+    flag = asyncio.Event()
+    connection = Connection(loop=loop,
+                            uuid=UUID,
+                            address=ADDRESS,
+                            read_char=read_char,
+                            write_char=write_char,
+                            flag=flag)
     try:
         asyncio.ensure_future(connection.manager())
         asyncio.ensure_future(communication_manager(connection,write_char=write_char,read_char=read_char))
-        if connection.connected:
-            app.root.current = 'secondary_window'
+        print(f"fetching connection")
+        await connection.flag.wait()
+        app.root.current = 'secondary_window'
+
         #loop.run_forever()
     finally:
+        print(f"flag status confirmed!")
         print("Disconnecting...")
-        #loop.run_until_complete(connection.cleanup())
+        # loop.run_until_complete(connection.cleanup())
 
 if __name__=='__main__':
     async def mainThread():
         """Creating main thread for asyncronous task definition"""
         BikeApp = Main()
         a = asyncio.create_task(BikeApp.start())
-        (done,pending) = await asyncio.wait({a},return_when='FIRST_COMPLETED')
+        (done,pending) = await asyncio.wait({a}, return_when='FIRST_COMPLETED')
 
     loop = asyncio.get_event_loop()
     asyncio.run(mainThread())
