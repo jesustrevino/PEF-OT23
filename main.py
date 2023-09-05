@@ -49,18 +49,20 @@ class Main(MDApp):
         self.speedmeter = self.root.get_screen('secondary_window').ids.speed
         self.circle_bar = self.root.get_screen('secondary_window').ids.circle_progress
         self.speedmeter.font_size_min = self.speedmeter.font_size
-
-        #self.circle_bar.pos_hint = 0.5, 0.5
+        #self.speed_q = asyncio.Queue()
 
 
     def connect_ble(self, touch: bool) -> None:
         """Function handling BLE connection between App and ESP32"""
         print('in connect_ble')
         Button = self.root.get_screen('main_window').ids.ble_button
+        self.slider_q = asyncio.Queue()
+        self.speed_q = asyncio.Queue()
         if touch:
             try:
-                #asyncio.create_task(run_BLE(self))
-                asyncio.create_task(debug_BLE(self))
+                #asyncio.create_task(run_BLE(self, self.slider_q, self.speed_q))
+                asyncio.create_task(debug_BLE(self, self.slider_q, self.speed_q))
+                asyncio.ensure_future(self.update_speed_value())
             except Exception as e:
                 print(e)
 
@@ -68,6 +70,7 @@ class Main(MDApp):
         """Switch state for adaptive mode switch. When in adaptive mode, the slider is disabled"""
         if value:
             self.root.get_screen('secondary_window').ids.adapt_slider.disabled = True
+            self.slider_q.put_nowait('NO')
             self.root.get_screen('secondary_window').ids.adapt_slider.value = self.root.get_screen('secondary_window').ids.adapt_slider.min
         else:
             self.root.get_screen('secondary_window').ids.adapt_slider.disabled = False
@@ -76,27 +79,35 @@ class Main(MDApp):
     def slider_slide(self, _, value: int) -> None:
         """Sends percentage of assistance wanted to ESP32
         In automatic mode: Use BATTERY and ACCELEROMETER values to determine percentage of use"""
-        print(value)
-        self.update_speed_value(value)
+        #print(value)
+        try:
+            self.slider_q.put_nowait(value)
+        except asyncio.QueueFull:
+            pass
+        #self.update_speed_value(value)
         self.update_battery_value(value)
         if value == self.root.get_screen('secondary_window').ids.adapt_slider.max:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "red"
         else:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "orange"
 
-    def update_speed_value(self,value: int) -> None:
+    async def update_speed_value(self) -> None:
         """Monitors current speed of bike
 
         STEPS TO DO:
             +READ FROM BLE TO UPDATE VALUE
 
         *for debugging purposes it shows the value from slider"""
-        if value > 2*self.speedmeter.end_value/3.6:
-            pass
-        else:
-            self.speedmeter.set_value = value - 25
-            self.speedmeter.text = f'{value} km/h'
-            #self.speedmeter.font_size = self.speedmeter.font_size_min + value
+        while True:
+            print("in speed")
+            speed = await self.speed_q.get()
+            print(f"speed-> {speed}")
+            if float(speed) > 2*self.speedmeter.end_value/3.6:
+                pass
+            else:
+                self.speedmeter.set_value = speed - 25
+                self.speedmeter.text = f'{speed} km/h'
+                    #self.speedmeter.font_size = self.speedmeter.font_size_min + value
 
     def update_battery_value(self,value: int) -> None:
         """Monitorss Battery life from bike
@@ -109,7 +120,7 @@ class Main(MDApp):
         self.circle_bar.set_value = value
         self.circle_bar.text = f'{value}%'
 
-async def debug_BLE(app: MDApp) -> None:
+async def debug_BLE(app: MDApp, slider_q: asyncio.Queue, speed_q: asyncio.Queue) -> None:
     app.root.get_screen('main_window').ids.spinner.active = True
     flag = asyncio.Event()
     try:
@@ -118,12 +129,15 @@ async def debug_BLE(app: MDApp) -> None:
         await debug.flag.wait()
     finally:
         print(f"flag confirmed!")
+        app.root.current = 'secondary_window'
     for i in range(20):
         print(f"Other coroutine -> {i}")
+        #value = await slider_q.get()
+        speed_q.put_nowait(i)
         await asyncio.sleep(1)
-    #app.root.current = 'secondary_window'
 
-async def run_BLE(app: MDApp) -> None:
+
+async def run_BLE(app: MDApp, slider_q: asyncio.Queue, speed_q: asyncio.Queue) -> None:
     """Asyncronous connection protocol for BLE"""
     app.root.get_screen('main_window').ids.spinner.active = True
     print('in run_BLE')
@@ -134,19 +148,21 @@ async def run_BLE(app: MDApp) -> None:
                             uuid=UUID,
                             address=ADDRESS,
                             read_char=read_char,
-                            write_char=write_char,
+                            write_char=read_char,
                             flag=flag)
     try:
         asyncio.ensure_future(connection.manager())
-        asyncio.ensure_future(communication_manager(connection,write_char=write_char,read_char=read_char))
+        asyncio.ensure_future(communication_manager(connection=connection,
+                                                    write_char=read_char,
+                                                    read_char=read_char,
+                                                    slider_q=slider_q,
+                                                    speed_q=speed_q))
         print(f"fetching connection")
         await connection.flag.wait()
         app.root.current = 'secondary_window'
-
         #loop.run_forever()
     finally:
         print(f"flag status confirmed!")
-        print("Disconnecting...")
         # loop.run_until_complete(connection.cleanup())
 
 if __name__=='__main__':

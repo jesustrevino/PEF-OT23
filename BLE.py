@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Callable, Any
 
 
-
 async def ble_connection(address: str, uuid: str) -> None:
     """Async function in charge of making and mantaining BLE connection between Android and ESP32
         + NOT USED - just for debugging purposes"""
@@ -20,6 +19,7 @@ async def ble_connection(address: str, uuid: str) -> None:
                 print("Model Number: {0}".format("".join(map(chr, model_number))))
             break
         await asyncio.sleep(0.1)
+
 
 class Connection:
     client: BleakClient = None
@@ -83,10 +83,10 @@ class Connection:
                 self.connected = self.client.is_connected
                 print(f"connection status: {self.connected}")
                 if self.connected:
-                    self.set_connect_flag() # setting flag into asyncio notify
+                    self.set_connect_flag()  # setting flag into asyncio notify
                     print("CLIENT CONNECTED")
                     self.client.set_disconnected_callback(self.on_disconnect)
-                    await self.client.start_notify(self.read_char,self.notification_handler)
+                    await self.client.start_notify(self.read_char, self.notification_handler)
                     while True:
                         if not self.connected:
                             break
@@ -154,7 +154,6 @@ class Connection:
         self.last_packet_time = present_time
         self.rx_delays.append((present_time - self.last_packet_time).microseconds)
 
-
     def clear_lists(self):
         self.rx_data.clear()
         self.rx_delays.clear()
@@ -164,28 +163,40 @@ class Connection:
         self.rx_data.append(int.from_bytes(data, byteorder="big"))
         self.record_time_info()
         if len(self.rx_data) >= self.dump_size:
-            #self.data_dump_handler(self.rx_data, self.rx_timestamps, self.rx_delays)
+            # self.data_dump_handler(self.rx_data, self.rx_timestamps, self.rx_delays)
             self.clear_lists()
 
 
-
-async def communication_manager(connection: Connection, write_char: str, read_char: str):
+async def communication_manager(connection: Connection,
+                                write_char: str, read_char: str,
+                                slider_q: asyncio.Queue, speed_q: asyncio.Queue):
     """In charge of sending and receiving information
         + IMPORTANT to pair write and read characteristics between App and ESP32"""
+    buffer = list()
     while True:
         if connection.client and connection.connected:
-            input_str = "putita"
-            bytes_to_send = bytearray(map(ord, input_str))
-            await connection.client.write_gatt_char(read_char, bytes_to_send)
-            print(f"Sent: {input_str}")
-            await asyncio.sleep(1.0)
+            try:
+                input_str = slider_q.get_nowait()
+                buffer.append(input_str)
+            except asyncio.QueueEmpty:
+                if len(buffer) > 0:
+                    input_str = f"{buffer[0]} \n"
+                    buffer.clear()
+                    bytes_to_send = bytearray(map(ord, str(input_str)))
+                    await connection.client.write_gatt_char(write_char, bytes_to_send, response=True)
+                    print(f"Sent: {input_str}")
+                    await asyncio.sleep(0.1)
+                else:
+                    input_str = '0'
+            await asyncio.sleep(0.1)
             msg_read = await connection.client.read_gatt_char(read_char)
-            print(msg_read.decode())
-            await asyncio.sleep(1.0)
+            print(f"message received -> {msg_read.decode()}")
+            await speed_q.put(str(msg_read.decode()))
+            await asyncio.sleep(0.1)
+
+
         else:
             await asyncio.sleep(2.0)
 
-
-
-
-
+async def set_queue():
+    speed_q = asyncio.Queue()
