@@ -10,10 +10,11 @@ Se utiliza Kivy para el diseño del UI. Cuenta con las siguientes features:
 + Display de batería
 
 ### Pantalla Principal
-<img width="795" alt="Screenshot 2023-09-05 at 13 47 08" src="https://github.com/jesustrevino/PEF-OT23/assets/74314228/1cfa8125-2f82-4c62-92bc-5912cd324a73">
+<img width="600" alt="MainWindow" src="https://github.com/jesustrevino/PEF-OT23/assets/74314228/e833f3e4-02aa-4e5d-a7f9-c67a65bf803d">
 
 ### Pantalla Secundaria
-...
+<img width="600" alt="SecondaryWindow" src="https://github.com/jesustrevino/PEF-OT23/assets/74314228/0b49fbc7-a39d-4213-9aeb-9258b02e2234">
+
 
 ## Back-End
 Entre los factores más importantes, se tiene el uso de las siguientes features:
