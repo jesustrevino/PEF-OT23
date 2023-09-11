@@ -1,7 +1,25 @@
+#: import Factory kivy.factory.Factory
+#: import MapView kivy_garden.mapview.MapView
 
 WindowManager:
     MainWindow:
     SecondaryWindow:
+
+<DropdownOptions@SpinnerOption>:
+    font_size: 25
+    font_name: 'fonts/NotoSans-Medium.ttf'
+    bold: True
+    color: 1,0.54,0,1
+    background_color: 0,0,0,0
+    background_normal: ''
+
+<SpinnerDropdown@Dropdown>:
+    auto_width: True
+    background_color: 0,0,0,0
+    max_height: 300
+    effect_cls: 'ScrollEffect'
+    scoll_type: ['bars', 'content']
+
 
 <CircularProgressBar>:
     canvas.before:
@@ -26,22 +44,36 @@ WindowManager:
 
 <MainWindow>:
     name: 'main_window'
-    MDRectangleFlatButton:
-        id: ble_button
-        text: 'CONNECT BLUETOOTH'
-        font_size: 32
-        bold: True
-        pos_hint: {'center_x':0.5,'center_y':0.5}
+    MDFloatLayout:
+        size: root.width, root.height/2
+        MDRectangleFlatButton:
+            id: ble_button
+            text: 'CONNECT BLUETOOTH'
+            font_size: 32
+            bold: True
+            pos_hint: {'center_x': 0.5,'center_y':0.8}
+            on_release:
+                app.connect_ble(*args)
 
-        on_release:
-            app.connect_ble(*args)
+        Spinner:
+            id: device_dropdown
+            option_cls: "DropdownOptions"
+            dropdown_cls: "SpinnerDropdown"
+            disabled: False
+            text: '...'
+            pos_hint: {'center_x': 0, 'center_y': 0}
+            size_hint: None, None
+            size: 0,0
+            on_text: app.dropdown_clicked(*args)
+            text_color: 0,0,0,0
 
-    MDSpinner:
-        id: spinner
-        size_hint: None, None
-        size: dp(46), dp(46)
-        pos_hint: {'center_x':0.5,'center_y':0.3}
-        active: False
+
+        MDSpinner:
+            id: spinner
+            size_hint: None, None
+            size: dp(46), dp(46)
+            pos_hint: {'center_x':0.5,'center_y':0.5}
+            active: False
 
 
 <SecondaryWindow>:
