@@ -178,7 +178,7 @@ class Connection:
 
 async def communication_manager(connection: Connection,
                                 write_char: str, read_char: str,
-                                slider_q: asyncio.Queue, speed_q: asyncio.Queue):
+                                slider_q: asyncio.Queue, battery_q: asyncio.Queue):
     """In charge of sending and receiving information
         + IMPORTANT to pair write and read characteristics between App and ESP32"""
     buffer = list()
@@ -195,16 +195,11 @@ async def communication_manager(connection: Connection,
                     await connection.client.write_gatt_char(write_char, bytes_to_send, response=True)
                     print(f"Sent: {input_str}")
                     await asyncio.sleep(0.1)
-                else:
-                    input_str = '0'
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
             msg_read = await connection.client.read_gatt_char(read_char)
             print(f"message received -> {msg_read.decode()}")
             msg_str = str(msg_read.decode())
-            await speed_q.put(msg_str)
+            await battery_q.put(msg_str)
             #await speed_q.put(str(msg_read.decode()))
-            await asyncio.sleep(0.1)
-
-
         else:
             await asyncio.sleep(2.0)
