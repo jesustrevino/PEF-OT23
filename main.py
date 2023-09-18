@@ -6,22 +6,23 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 import asyncio
 from plyer import gps
-from math import asin, cos, pi, sqrt
+
 
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.dropdown import DropDown
 from CircularProgressBar import CircularProgressBar
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
-from kivy_garden.mapview import MapView
 
 from BLE import Connection, communication_manager
 from ble_client_test import Debug
+from gpshelper import GpsHelper
 
 # kivy.version('1.9.0')
 
 # ADDRESS, UUID = "78:21:84:9D:37:10", "0000181a-0000-1000-8000-00805f9b34fb"
 ADDRESS, UUID = None, None
+GPS_ON = False
 
 
 class MainWindow(Screen): pass
@@ -40,6 +41,12 @@ class Main(MDApp):
     dialog = None
     i: int = 0
     velocity: int = 0
+    gps_time: int = 500
+    gps_info: dict = dict()
+    slider_q = asyncio.Queue()
+    speed_q = asyncio.Queue()
+    drop_q = asyncio.Queue()
+    battery_q = asyncio.Queue()
 
     def build(self):
         """setting design for application widget development specifications on design.kv"""
@@ -58,72 +65,16 @@ class Main(MDApp):
     def on_start(self):
         """On start method for building desired variables for later use"""
         Logger.info("Called start")
+        
         # Renames certain components from app that will be used in other functions
         self.button = self.root.get_screen('main_window').ids.ble_button
         self.circle_bar = self.root.get_screen('secondary_window').ids.circle_progress
         self.speedmeter = self.root.get_screen('secondary_window').ids.speed
         self.speedmeter.font_size_min = self.speedmeter.font_size
-        # self.backdrop = self.root.get_screen('secondary_window').ids.backdrop
 
         # GPS setup and start
-        self.gps_time = 500 #ms
-        self.gps_info = dict()
-        gps.configure(on_location=self.on_location)
-        gps.start(minTime=self.gps_time)
-
-        # Multipe queues for app interaction between Front and Back-End
-        self.slider_q = asyncio.Queue()
-        self.speed_q = asyncio.Queue()
-        self.drop_q = asyncio.Queue()
-        self.battery_q = asyncio.Queue()
-
-    def on_location(self, **kwargs):
-        """callback used to gather relevant information"""
-        self.i += 1
-        Logger.info("Called on_location")
-        Logger.info(kwargs)
-        self.gps_info.update({self.i: kwargs})
-        if self.i >= 1:
-            self.velocity = self.calculate_speed
-            self.speed_q.put_nowait(self.velocity)
-            self.i = 0
-
-    @property
-    def calculate_distance(self) -> float:
-        r = 6371 #radius of Earth
-        p = pi / 180  # multiply this to convert Degrees to Radians
-        lat1 = self.gps_info[0]["lat"]
-        lon1 = self.gps_info[0]["lon"]
-        lat2 = self.gps_info[1]["lat"]
-        lon2 = self.gps_info[1]["lon"]
-        # CHECK HAVERSINE FORMULA
-        return 2 * r * asin(
-            sqrt(0.5 - cos((lat2 - lat1) * p) / 2 + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2))
-
-    @property
-    def calculate_speed(self) -> int:
-        # For current speed a & b will be first & second values on list
-        # For average speed it will be first & last values
-        distance = self.calculate_distance
-        return int(distance * 3600 / (self.gps_time / 1000)) # Multiplying by 3600 for Km/Hrs
-
-    def show_alert(self) -> None:
-        if not self.dialog:
-            self.dialog = MDDialog(
-                title='Connection Failed!',
-                text='Failed to connect to desired device. Please select another option',
-                buttons=[
-                    MDFlatButton(
-                        text='RETURN',
-                        text_color=self.theme_cls.primary_color,
-                        on_release=self.close_alert
-                    )
-                ]
-            )
-        self.dialog.open()
-
-    def close_alert(self, obj):
-        self.dialog.dismiss()
+        if GPS_ON:
+            GpsHelper().run(self.speed_q)
 
     def connect_ble(self, touch: bool) -> None:
         """Function handling BLE connection between App and ESP32"""
@@ -131,7 +82,8 @@ class Main(MDApp):
             try:
                 asyncio.create_task(run_BLE(self, self.slider_q, self.battery_q, self.drop_q))
                 # asyncio.create_task(debug_BLE(self, self.slider_q, self.speed_q))
-                asyncio.create_task(self.update_battery_value())
+                asyncio.ensure_future(self.update_battery_value(), loop=loop)
+                asyncio.ensure_future(self.update_speed_value(), loop=loop)
             except Exception as e:
                 print(e)
 
@@ -162,7 +114,7 @@ class Main(MDApp):
         except asyncio.QueueFull:
             pass
         # self.update_speed_value(value)
-        self.update_battery_value(value)
+        # self.update_battery_value(value)
         if value == self.root.get_screen('secondary_window').ids.adapt_slider.max:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "red"
         else:
@@ -179,6 +131,7 @@ class Main(MDApp):
             except Exception as e:
                 print(f'Exception:: {e}')
                 speed = float(0.0)
+                await asyncio.sleep(1.0)
             if float(speed) > 2 * self.speedmeter.end_value / 3.6:
                 pass
             else:
@@ -193,18 +146,20 @@ class Main(MDApp):
             +READ FROM BLE TO UPDATE VALUE
 
         *for debugging purposes it shows the value from slider"""
-        max_battery_voltage = 23.7 # V //Voltage gotten when fully charged
-        min_battery_voltage = 20.0 # V //Lowest voltage before battery starts getting damaged
+        max_battery_voltage = 23.7  # V //Voltage gotten when fully charged
+        min_battery_voltage = 20.0  # V //Lowest voltage before battery starts getting damaged
         while True:
             print("in battery")
             try:
                 current_battery_life = await self.battery_q.get()
-                battery_life = (current_battery_life - min_battery_voltage) / (max_battery_voltage - min_battery_voltage)
+                battery_life = (current_battery_life - min_battery_voltage) / (
+                            max_battery_voltage - min_battery_voltage)
                 battery_life = int(battery_life)
                 print(f"battery-> {battery_life}")
             except Exception as e:
                 print(f'Exception:: {e}')
                 battery_life = int(0)
+                await asyncio.sleep(2.0)
             if battery_life > 100:
                 pass
             else:
@@ -256,7 +211,7 @@ async def run_BLE(app: MDApp, slider_q: asyncio.Queue, battery_q: asyncio.Queue,
         # loop.run_forever()
     finally:
         print(f"flag status confirmed!")
-        print(f"speed value to send -> {battery_q}")
+        print(f"battery value to send -> {battery_q}")
 
         # loop.run_until_complete(connection.cleanup())
 
