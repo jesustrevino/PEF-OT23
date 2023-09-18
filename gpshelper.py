@@ -8,6 +8,7 @@ class GpsHelper:
     gps_min_distance: int = 0
     gps_info: dict = dict()
     i: int = 0
+    velocity: int = 0
     def run(self, speed_q: asyncio.Queue):
         # Get reference
         self.speed_q = speed_q
@@ -22,9 +23,8 @@ class GpsHelper:
                     print('Did not get all permissions')
             request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION,
                                  callback])
-            request_permissions([], callback)
 
-        #configure GPS
+        # configure GPS
         if platform == 'android' or platform == 'ios':
             from plyer import gps
             gps.configure(on_location=self.on_location,
@@ -59,13 +59,13 @@ class GpsHelper:
         distance = self.calculate_distance
         return int(distance * 3600 / (self.gps_time / 1000))  # Multiplying by 3600 for Km/Hrs
 
-    def on_auth_status(self, general_status, status_message):
+    def on_auth_status(self, general_status: str, status_message: str) -> None:
         if general_status == 'provider-enabled':
             pass
         else:
             self.open_gps_access_popup()
 
-    def open_gps_access_popup(self):
+    def open_gps_access_popup(self) -> None:
         dialog = MDDialog(title='GPS Error',
                           text="You need to enable GPS access for the app to function properly")
         dialog.size_hint = [0.8,0.8]
