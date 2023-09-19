@@ -43,3 +43,8 @@ Requirements needed to build Android kivy App:
    1. This gives us developer rights
 2. After that, developer options will appear
 3. Inside developer options, enable USB Debugging and mantain active while connected to USB
+
+_____
+## CAN ALSO CHECK:
+https://github.com/Android-for-Python/Android-for-Python-Users#user-permissions.
+For other debugging problems that may appear
