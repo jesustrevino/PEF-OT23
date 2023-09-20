@@ -19,9 +19,9 @@ Requirements needed to build Android kivy App:
     1. Inside the spec folder, you'll need to specify the libraries you're using, as well as the extensions of the files you want to be packaged
     2. Search for OS [Android]
     3. Go to android.permissions
-       1. Add ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
+       1. Add ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_BACKGROUND_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN, WAKE_LOCK
 11. Go back to terminal, and type all commands to update dependencies
-    1. sudo apt install -y git zip openjdk-8-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
+    1. sudo apt install -y git zip unzip openjdk-11-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
     2. sudo apt-get install --user --upgrade cython virtualenv
        1. IF ALREADY WORKING ON A VIRTUAL ENV OMIT --user
 12. Deploy App 
