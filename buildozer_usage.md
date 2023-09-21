@@ -25,7 +25,11 @@ Requirements needed to build Android kivy App:
     2. pip3 install --user --upgrade Cython==0.29.33 virtualenv
        1. IF ALREADY WORKING ON A VIRTUAL ENV OMIT --user
 12. Deploy App 
-    1. TERMINAL -> buildozer android debug deploy run logcat.   
+    1. TERMINAL -> buildozer android debug deploy run logcat.
+
+*_SUGGESTED:_* installing adb when connecting the phone to Linux is highly recommended. It helps in gaining authorization when connecting and establishes a safe connection.
+TERMINAL -> sudo apt-get install adb
+-> adb devices [LISTS ALL CONNECTED DEVICES VIA USB]
 
 *_IMPORTANT:_* Some debugging may be necessary. If app doesn't deploy, check documentation. The following links are recommended:
 + buildozer.readthedocs.io/en/latest/installation.html
