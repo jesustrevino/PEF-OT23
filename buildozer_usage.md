@@ -22,7 +22,7 @@ Requirements needed to build Android kivy App:
        1. Add ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_BACKGROUND_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN, WAKE_LOCK
 11. Go back to terminal, and type all commands to update dependencies
     1. sudo apt install -y git zip unzip openjdk-11-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
-    2. sudo apt-get install --user --upgrade cython virtualenv
+    2. sudo apt-get install --user --upgrade Cython==0.29.33 virtualenv
        1. IF ALREADY WORKING ON A VIRTUAL ENV OMIT --user
 12. Deploy App 
     1. TERMINAL -> buildozer android debug deploy run logcat.   
