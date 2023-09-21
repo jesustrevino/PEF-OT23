@@ -34,6 +34,7 @@ TERMINAL -> sudo apt-get install adb
 *_IMPORTANT:_* Some debugging may be necessary. If app doesn't deploy, check documentation. The following links are recommended:
 + buildozer.readthedocs.io/en/latest/installation.html
 + If an ERROR occurred with Cython https://github.com/kivy/buildozer/issues/1235
++ Concerning Cython, if it says is not installed CHECK: https://stackoverflow.com/questions/66973759/cython-not-found-please-install-it-error-in-buildozer
 + NEED TO CHECK Java file is correct: ./Gradlew
   + TERMINAL -> sudo apt-get install openjdk-version-jdk
   + The Error Message includes the version compatible with the project
