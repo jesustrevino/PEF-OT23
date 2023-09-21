@@ -1,5 +1,4 @@
 #: import Factory kivy.factory.Factory
-#: import MapView kivy_garden.mapview.MapView
 
 WindowManager:
     MainWindow:
@@ -7,7 +6,7 @@ WindowManager:
 
 <DropdownOptions@SpinnerOption>:
     font_size: 25
-    font_name: 'fonts/NotoSans-Medium.ttf'
+    font_name: 'NotoSans-Medium.ttf'
     bold: True
     color: 1,0.54,0,1
     background_color: 0,0,0,0
@@ -16,7 +15,7 @@ WindowManager:
 <SpinnerDropdown@Dropdown>:
     auto_width: True
     background_color: 0,0,0,0
-    max_height: 300
+    max_height: 500
     effect_cls: 'ScrollEffect'
     scoll_type: ['bars', 'content']
 
@@ -94,7 +93,7 @@ WindowManager:
                     text: 'ADAPTIVE MODE'
                     bold: True
                     font_size: 32
-                    font_name: 'fonts/NotoSans-Medium.ttf'
+                    font_name: 'NotoSans-Medium.ttf'
                     halign: 'center'
                     pos_hint: {'center_y' : 0.5}
                 MDSwitch:

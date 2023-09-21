@@ -2,22 +2,7 @@ import asyncio
 from bleak import BleakClient, BleakScanner
 from kivymd.app import MDApp
 from datetime import datetime
-from typing import Any
-
-
-async def ble_connection(address: str, uuid: str) -> None:
-    """Async function in charge of making and mantaining BLE connection between Android and ESP32
-        + NOT USED - just for debugging purposes"""
-    for _ in range(10):
-        print('connecting...')
-        if address == "" or uuid == "":
-            pass
-        else:
-            async with BleakClient(address) as client:
-                model_number = await client.read_gatt_char(uuid)
-                print("Model Number: {0}".format("".join(map(chr, model_number))))
-            break
-        await asyncio.sleep(0.1)
+from typing import Any, Union
 
 
 class Connection:
@@ -26,7 +11,7 @@ class Connection:
     def __init__(self,
                  loop: asyncio.AbstractEventLoop,
                  app: MDApp,
-                 uuid: str, address: str,
+                 uuid: Union[str, None], address: Union[str, None],
                  read_char: str, write_char: str,
                  drop_q: asyncio.Queue,
                  dump_size: int = 256,
@@ -67,7 +52,10 @@ class Connection:
                 await self.connect()
                 await asyncio.sleep(1.0)
             else:
-                await self.select_device()
+                try:
+                    await self.select_device()
+                except Exception as e:
+                    print(e)
                 await asyncio.sleep(15.0)
 
     def set_connect_flag(self):
@@ -189,17 +177,15 @@ async def communication_manager(connection: Connection,
                 buffer.append(input_str)
             except asyncio.QueueEmpty:
                 if len(buffer) > 0:
-                    input_str = f"{buffer[0]} \n"
+                    input_str = f"{buffer[0]}\n"
                     buffer.clear()
                     bytes_to_send = bytearray(map(ord, str(input_str)))
                     await connection.client.write_gatt_char(write_char, bytes_to_send, response=True)
                     print(f"Sent: {input_str}")
-                    await asyncio.sleep(0.1)
             await asyncio.sleep(0.5)
             msg_read = await connection.client.read_gatt_char(read_char)
             print(f"message received -> {msg_read.decode()}")
             msg_str = str(msg_read.decode())
             await battery_q.put(msg_str)
-            #await speed_q.put(str(msg_read.decode()))
         else:
             await asyncio.sleep(2.0)

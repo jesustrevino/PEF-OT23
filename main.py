@@ -1,28 +1,20 @@
 from kivymd.app import MDApp
-from kivy.app import App
-from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.lang import Builder
 from kivy.logger import Logger
 import asyncio
-from plyer import gps
-
 
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.dropdown import DropDown
 from CircularProgressBar import CircularProgressBar
-from kivymd.uix.dialog import MDDialog
-from kivymd.uix.button import MDFlatButton
 
 from BLE import Connection, communication_manager
-from ble_client_test import Debug
 from gpshelper import GpsHelper
 
-# kivy.version('1.9.0')
 
 # ADDRESS, UUID = "78:21:84:9D:37:10", "0000181a-0000-1000-8000-00805f9b34fb"
 ADDRESS, UUID = None, None
-GPS_ON = False
+GPS_ON = True
 
 
 class MainWindow(Screen): pass
@@ -39,10 +31,6 @@ class SpinnerDropdown(DropDown): pass
 
 class Main(MDApp):
     dialog = None
-    i: int = 0
-    velocity: int = 0
-    gps_time: int = 500
-    gps_info: dict = dict()
     slider_q = asyncio.Queue()
     speed_q = asyncio.Queue()
     drop_q = asyncio.Queue()
@@ -52,6 +40,9 @@ class Main(MDApp):
         """setting design for application widget development specifications on design.kv"""
         self.theme_cls.theme_style = 'Dark'
         self.theme_cls.primary_palette = 'Orange'
+        # GPS setup and start
+        if GPS_ON:
+            GpsHelper().run(self.speed_q)
         return Builder.load_file(filename='design.kv')
 
     async def launch_app(self):
@@ -65,23 +56,18 @@ class Main(MDApp):
     def on_start(self):
         """On start method for building desired variables for later use"""
         Logger.info("Called start")
-        
+
         # Renames certain components from app that will be used in other functions
         self.button = self.root.get_screen('main_window').ids.ble_button
         self.circle_bar = self.root.get_screen('secondary_window').ids.circle_progress
         self.speedmeter = self.root.get_screen('secondary_window').ids.speed
         self.speedmeter.font_size_min = self.speedmeter.font_size
 
-        # GPS setup and start
-        if GPS_ON:
-            GpsHelper().run(self.speed_q)
-
     def connect_ble(self, touch: bool) -> None:
         """Function handling BLE connection between App and ESP32"""
         if touch:
             try:
                 asyncio.create_task(run_BLE(self, self.slider_q, self.battery_q, self.drop_q))
-                # asyncio.create_task(debug_BLE(self, self.slider_q, self.speed_q))
                 asyncio.ensure_future(self.update_battery_value(), loop=loop)
                 asyncio.ensure_future(self.update_speed_value(), loop=loop)
             except Exception as e:
@@ -113,8 +99,6 @@ class Main(MDApp):
             self.slider_q.put_nowait(value)
         except asyncio.QueueFull:
             pass
-        # self.update_speed_value(value)
-        # self.update_battery_value(value)
         if value == self.root.get_screen('secondary_window').ids.adapt_slider.max:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "red"
         else:
@@ -129,7 +113,7 @@ class Main(MDApp):
                 speed = float(speed)
                 print(f"speed-> {speed}")
             except Exception as e:
-                print(f'Exception:: {e}')
+                print(f'Exception in speed:: {e}')
                 speed = float(0.0)
                 await asyncio.sleep(1.0)
             if float(speed) > 2 * self.speedmeter.end_value / 3.6:
@@ -137,51 +121,28 @@ class Main(MDApp):
             else:
                 self.speedmeter.set_value = speed - 25
                 self.speedmeter.text = f'{int(speed)} km/h'
-                # self.speedmeter.font_size = self.speedmeter.font_size_min + value
 
     async def update_battery_value(self) -> None:
-        """Monitorss Battery life from bike
-
-        STEPS TO DO:
-            +READ FROM BLE TO UPDATE VALUE
-
-        *for debugging purposes it shows the value from slider"""
+        """Monitors Battery life from bike"""
         max_battery_voltage = 23.7  # V //Voltage gotten when fully charged
         min_battery_voltage = 20.0  # V //Lowest voltage before battery starts getting damaged
         while True:
             print("in battery")
             try:
-                current_battery_life = await self.battery_q.get()
+                current_battery_life = float(await self.battery_q.get())
                 battery_life = (current_battery_life - min_battery_voltage) / (
-                            max_battery_voltage - min_battery_voltage)
+                        max_battery_voltage - min_battery_voltage)
                 battery_life = int(battery_life)
                 print(f"battery-> {battery_life}")
             except Exception as e:
-                print(f'Exception:: {e}')
+                print(f'Exception in battery:: {e}')
                 battery_life = int(0)
                 await asyncio.sleep(2.0)
             if battery_life > 100:
-                pass
+                battery_life = int(100)
             else:
                 self.circle_bar.set_value = battery_life
                 self.circle_bar.text = f'{battery_life}%'
-
-
-async def debug_BLE(app: MDApp, slider_q: asyncio.Queue, speed_q: asyncio.Queue) -> None:
-    app.root.get_screen('main_window').ids.spinner.active = True
-    flag = asyncio.Event()
-    try:
-        debug = Debug(flag)
-        # await debug.connected.wait()
-        await debug.flag.wait()
-    finally:
-        print(f"flag confirmed!")
-        app.root.current = 'secondary_window'
-    for i in range(20):
-        print(f"Other coroutine -> {i}")
-        # value = await slider_q.get()
-        speed_q.put_nowait(i)
-        await asyncio.sleep(1)
 
 
 async def run_BLE(app: MDApp, slider_q: asyncio.Queue, battery_q: asyncio.Queue, drop_q: asyncio.Queue) -> None:
@@ -208,12 +169,9 @@ async def run_BLE(app: MDApp, slider_q: asyncio.Queue, battery_q: asyncio.Queue,
         print(f"fetching connection")
         await connection.flag.wait()
         app.root.current = 'secondary_window'
-        # loop.run_forever()
     finally:
         print(f"flag status confirmed!")
         print(f"battery value to send -> {battery_q}")
-
-        # loop.run_until_complete(connection.cleanup())
 
 
 if __name__ == '__main__':

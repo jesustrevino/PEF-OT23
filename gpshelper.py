@@ -3,14 +3,13 @@ from kivymd.uix.dialog import MDDialog
 import asyncio
 from math import asin, cos, pi, sqrt
 
+
 class GpsHelper:
     gps_time: int = 1000
     gps_min_distance: int = 0
-    gps_info: dict = dict()
-    i: int = 0
     velocity: int = 0
-    def run(self, speed_q: asyncio.Queue):
-        # Get reference
+
+    def run(self, speed_q: asyncio.Queue) -> None:
         self.speed_q = speed_q
 
         # Request permissions on Android
@@ -21,8 +20,16 @@ class GpsHelper:
                     print('Got all permissions')
                 else:
                     print('Did not get all permissions')
-            request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION,
+
+            try:
+                request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION,
+                                 Permission.BLUETOOTH, Permission.BLUETOOTH_ADMIN,
+                                 Permission.WAKE_LOCK,
+                                 Permission.ACCESS_SURFACE_FLINGER,
+                                 Permission.ACCESS_BACKGROUND_LOCATION,
                                  callback])
+            except Exception as e:
+                print(e)
 
         # configure GPS
         if platform == 'android' or platform == 'ios':
@@ -33,12 +40,8 @@ class GpsHelper:
 
     def on_location(self, *args, **kwargs):
         """callback used to gather relevant information"""
-        self.i += 1
-        self.gps_info.update({self.i: {kwargs['lat'], kwargs['lon']}})
-        if self.i >= 1:
-            self.velocity = self.calculate_speed
-            self.speed_q.put_nowait(self.velocity)
-            self.i = 0
+        self.velocity = (kwargs['speed'] * 3.6)
+        self.speed_q.put_nowait(self.velocity)
 
     @property
     def calculate_distance(self) -> float:
@@ -68,6 +71,6 @@ class GpsHelper:
     def open_gps_access_popup(self) -> None:
         dialog = MDDialog(title='GPS Error',
                           text="You need to enable GPS access for the app to function properly")
-        dialog.size_hint = [0.8,0.8]
+        dialog.size_hint = [0.8, 0.8]
         dialog.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
         dialog.open()
