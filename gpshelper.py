@@ -5,32 +5,12 @@ from math import asin, cos, pi, sqrt
 
 
 class GpsHelper:
-    gps_time: int = 1000
-    gps_min_distance: int = 0
+    gps_time: float = 2000
+    gps_min_distance: float = 0.1
     velocity: int = 0
 
     def run(self, speed_q: asyncio.Queue) -> None:
         self.speed_q = speed_q
-
-        # Request permissions on Android
-        if platform == 'android':
-            from android.permissions import Permission, request_permissions
-            def callback(permission, results):
-                if all([res for res in results]):
-                    print('Got all permissions')
-                else:
-                    print('Did not get all permissions')
-
-            try:
-                request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION,
-                                 Permission.BLUETOOTH, Permission.BLUETOOTH_ADMIN,
-                                 Permission.WAKE_LOCK,
-                                 Permission.ACCESS_SURFACE_FLINGER,
-                                 Permission.ACCESS_BACKGROUND_LOCATION,
-                                 callback])
-            except Exception as e:
-                print(e)
-
         # configure GPS
         if platform == 'android' or platform == 'ios':
             from plyer import gps
@@ -40,6 +20,7 @@ class GpsHelper:
 
     def on_location(self, *args, **kwargs):
         """callback used to gather relevant information"""
+        print(f"on_location ->>> {kwargs}")
         self.velocity = (kwargs['speed'] * 3.6)
         self.speed_q.put_nowait(self.velocity)
 

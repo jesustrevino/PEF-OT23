@@ -1,12 +1,15 @@
 import asyncio
-from bleak import BleakClient, BleakScanner
+from bleak.backends.p4android.client import BleakClientP4Android 
+from bleak.backends.p4android.scanner import BleakScannerP4Android
+from bleak import BleakScanner, BleakClient
 from kivymd.app import MDApp
 from datetime import datetime
 from typing import Any, Union
+import uuid as ui
 
 
 class Connection:
-    client: BleakClient = None
+    client: BleakClientP4Android = None
 
     def __init__(self,
                  loop: asyncio.AbstractEventLoop,
@@ -20,6 +23,7 @@ class Connection:
         self.uuid = uuid
         self.address = address
         self.read_char = read_char
+        self.p_read_char = ui.UUID(self.read_char)
         self.write_char = write_char
         self.dump_size = dump_size
         self.flag = flag
@@ -33,7 +37,7 @@ class Connection:
         self.rx_timestamps = []
         self.rx_delays = []
 
-    def on_disconnect(self, client: BleakClient, future: asyncio.Future) -> None:
+    def on_disconnect(self) -> None:
         """Protocol on disconnect of BLE"""
         self.connected = False
         print(f"Disconnected from {self.connected_device.name}!")
@@ -76,10 +80,10 @@ class Connection:
                 if self.connected:
                     try:
                         self.client.set_disconnected_callback(self.on_disconnect)
+                        print(self.client.services.characteristics)
                         await self.client.start_notify(self.read_char, self.notification_handler)
-                        self.set_connect_flag()  # setting flag into asyncio notify
-                    except TypeError:
-                        pass
+                    except Exception as e:
+                        print(f'IN EXCEPTION TRYING TO CONNECT {e}')
                     while True:
                         if not self.connected:
                             self.app.root.current = 'main_window'
@@ -88,7 +92,7 @@ class Connection:
                 else:
                     print(f"Failed to connect to {self.connected_device.name}")
             except Exception as e:
-                print(f"IN EXCEPTION {e}")
+                print(f"IN EXCEPTION CLIENT {e}")
                 self.connected = False
                 self.app.root.get_screen('main_window').ids.device_dropdown.text = '...'
                 self.app.root.get_screen('main_window').ids.spinner.active = False
@@ -106,7 +110,7 @@ class Connection:
             self.connected_device = [uuid, address]
             print('in self.client')
             while True:
-                self.client, _ = BleakClient(address, loop=self.loop)
+                self.client, _ = BleakClientP4Android(address, loop=self.loop)
                 print(f"in connection protocol")
 
                 if self.client:
@@ -128,7 +132,7 @@ class Connection:
             devices = await asyncio.create_task(BleakScanner.discover())
             for i, device in enumerate(devices):
                 if device.name != None:
-                    print(f"{i}: {device.name}")
+                    print(f"{i}: {device.name}, {device.address}")
                     dropdown_devices.append(str(device.name))
                     dropdown_dict.update({device.name: i})
             self.app.root.get_screen('main_window').ids.device_dropdown.pos_hint = {'center_x': 0.5, 'center_y': 0.7}
@@ -138,12 +142,20 @@ class Connection:
             device = await self.drop_q.get()
             response = dropdown_dict[device]
             if devices[response]:
-                device_found = True
+                device_found = True 
                 self.app.root.get_screen('main_window').ids.device_dropdown.disabled = True
 
         print(f"Connecting to {devices[response].name}")
         self.connected_device = devices[response]
-        self.client = BleakClient(devices[response].address, loop=self.loop)
+        try: 
+            # self.client = BleakClientP4Android(address_or_ble_device=devices[response].address,services=[(self.p_read_char.hex)], loop=self.loop)
+            self.client = BleakClient(address_or_ble_device=devices[response].address, loop=self.loop)
+            # print(f"Got client: {self.client.services.characteristics}")
+            # print(f'CLient services: {self.client.get_services()}')     
+        except Exception as e:
+            print(f"There was a problem connecting to device... {e}")
+        finally:
+            self.set_connect_flag()  # setting flag into asyncio notify
 
     def record_time_info(self) -> None:
         present_time = datetime.now()

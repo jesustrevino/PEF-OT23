@@ -2,6 +2,7 @@ from kivymd.app import MDApp
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.lang import Builder
 from kivy.logger import Logger
+from kivy.utils import platform
 import asyncio
 
 from kivy.uix.spinner import Spinner, SpinnerOption
@@ -10,6 +11,7 @@ from CircularProgressBar import CircularProgressBar
 
 from BLE import Connection, communication_manager
 from gpshelper import GpsHelper
+
 
 
 # ADDRESS, UUID = "78:21:84:9D:37:10", "0000181a-0000-1000-8000-00805f9b34fb"
@@ -42,7 +44,7 @@ class Main(MDApp):
         self.theme_cls.primary_palette = 'Orange'
         # GPS setup and start
         if GPS_ON:
-            GpsHelper().run(self.speed_q)
+            self.get_permissions()
         return Builder.load_file(filename='design.kv')
 
     async def launch_app(self):
@@ -62,14 +64,34 @@ class Main(MDApp):
         self.circle_bar = self.root.get_screen('secondary_window').ids.circle_progress
         self.speedmeter = self.root.get_screen('secondary_window').ids.speed
         self.speedmeter.font_size_min = self.speedmeter.font_size
+        
+        self.circle_bar.text = f'0%'
+        
+    def get_permissions(self):
+    	# Request permissions on Android
+        if platform == 'android':
+            from android.permissions import Permission, request_permissions
+            def callback(permission, results):
+                if all([res for res in results]):
+                    print('Got all permissions')
+                else:
+                    print('Did not get all permissions')
+
+            try:
+                request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION, Permission.BLUETOOTH, Permission.BLUETOOTH_ADMIN, Permission.WAKE_LOCK, Permission.BLUETOOTH_CONNECT,
+                callback])
+            except Exception as e:
+                print(e)
 
     def connect_ble(self, touch: bool) -> None:
         """Function handling BLE connection between App and ESP32"""
         if touch:
             try:
                 asyncio.create_task(run_BLE(self, self.slider_q, self.battery_q, self.drop_q))
-                asyncio.ensure_future(self.update_battery_value(), loop=loop)
-                asyncio.ensure_future(self.update_speed_value(), loop=loop)
+                GpsHelper().run(self.speed_q)
+                asyncio.ensure_future(self.update_battery_value())
+                asyncio.ensure_future(self.update_speed_value())
+                
             except Exception as e:
                 print(e)
 
@@ -106,6 +128,7 @@ class Main(MDApp):
 
     async def update_speed_value(self) -> None:
         """Monitors current speed of bike"""
+        speed = 0
         while True:
             print("in speed")
             try:
@@ -126,6 +149,7 @@ class Main(MDApp):
         """Monitors Battery life from bike"""
         max_battery_voltage = 23.7  # V //Voltage gotten when fully charged
         min_battery_voltage = 20.0  # V //Lowest voltage before battery starts getting damaged
+        battery_life = 0
         while True:
             print("in battery")
             try:
@@ -168,10 +192,13 @@ async def run_BLE(app: MDApp, slider_q: asyncio.Queue, battery_q: asyncio.Queue,
                                                     battery_q=battery_q))
         print(f"fetching connection")
         await connection.flag.wait()
-        app.root.current = 'secondary_window'
     finally:
         print(f"flag status confirmed!")
-        print(f"battery value to send -> {battery_q}")
+        
+    try: 
+        app.root.current = 'secondary_window'
+    except Exception as e:
+    	print(f'EXCEPTION WHEN CHANGING WINDOW -> {e}')
 
 
 if __name__ == '__main__':
