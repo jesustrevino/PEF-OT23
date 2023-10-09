@@ -1,4 +1,5 @@
 #: import Factory kivy.factory.Factory
+#: import MapView kivy_garden.mapview.MapView
 
 WindowManager:
     MainWindow:
@@ -6,7 +7,7 @@ WindowManager:
 
 <DropdownOptions@SpinnerOption>:
     font_size: 25
-    font_name: 'NotoSans-Medium.ttf'
+    font_name: 'fonts/NotoSans-Medium.ttf'
     bold: True
     color: 1,0.54,0,1
     background_color: 0,0,0,0
@@ -77,79 +78,116 @@ WindowManager:
 
 <SecondaryWindow>:
     name: 'secondary_window'
-    MDBoxLayout:
-        orientation: 'vertical'
-        size: root.width, root.height
-        MDBoxLayout:
-            size: root.width, root.height*0.3
-            orientation: 'vertical'
-            padding: '10dp'
-            MDCard:
-                radius: '10dp'
-                padding: '10dp'
-                line_color: 1,0.54,0,1
-                thickness: 10
-                MDLabel:
-                    text: 'ADAPTIVE MODE'
-                    bold: True
-                    font_size: 32
-                    font_name: 'NotoSans-Medium.ttf'
-                    halign: 'center'
-                    pos_hint: {'center_y' : 0.5}
-                MDSwitch:
-                    id: adapt_switch
-                    pos_hint: {'center_x':.5,'center_y':.5}
-                    on_active:
-                        app.switch_state(*args)
-        MDBoxLayout:
-            size: root.width, root.height*0.2
-            orientation: 'vertical'
-            padding: '10dp'
-            MDSlider:
-                id: adapt_slider
-                min: 0
-                max: 100
-                step: 5
-                orientation: 'horizontal'
-                padding: '10dp'
-                hint: True
-                hint_text_color: 'orange'
-                hint_bg_color: 'white'
-                thumb_color_disabled: 'grey'
-                on_value:
-                    app.slider_slide(*args)
-        MDBoxLayout:
-            size: root.width, root.height*0.25
-            orientation: 'vertical'
-            CircularProgressBar:
-                id: speed
-                size_hint: None, None
-                size: 250,250
-                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                padding: 20
-                start_value: -90
-                end_value: 90
-                set_value: -25
-                bar_color: 1,0.54,0
-                text: '0 km/h'
-                font_size: 52
-                tick: 1
 
+    MDBottomNavigation:
+        #panel_color: "#eeeaea"
+        selected_color_background: "orange"
+        text_color_active: "lightgrey"
+        MDBottomNavigationItem:
+            name: 'screen 1'
+            text: 'features'
+            icon: 'android'
+            MDFloatLayout:
+                size: root.width, root.height
+                orientation: 'vertical'
+                CircularProgressBar:
+                    id: speed
+                    size_hint: None, None
+                    size: 350,350
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.7}
+                    padding: 20
+                    start_value: -90
+                    end_value: 90
+                    set_value: -25
+                    bar_color: 1,0.54,0
+                    text: '0 km/h'
+                    font_size: 52
+                    tick: 1
 
-        MDFloatLayout:
-            size: root.width, root.height*0.25
-            orientation: 'vertical'
-            CircularProgressBar:
-                id: circle_progress
-                size_hint: None, None
-                size: 250, 250
-                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                padding: 20
-                text: '0%'
-                start_value: 0
-                font_size: 52
-                end_value: 360
-                set_value: 0
-                tick: 1
+                CircularProgressBar:
+                    id: circle_progress
+                    size_hint: None, None
+                    size: 350, 350
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.2}
+                    padding: 20
+                    text: '0%'
+                    start_value: 0
+                    font_size: 52
+                    end_value: 360
+                    set_value: 0
+                    tick: 1
+        MDBottomNavigationItem:
+            name: 'screen 2'
+            text: 'settings'
+            icon: 'git'
+            MDBoxLayout:
+                orientation: 'vertical'
+                size: root.width, root.height
+                MDBoxLayout:
+                    size: root.width, root.height*0.2
+                    orientation: 'vertical'
+                    padding: '10dp'
+                    MDCard:
+                        radius: '10dp'
+                        padding: '10dp'
+                        line_color: 1,0.54,0,1
+                        thickness: 10
+                        MDLabel:
+                            text: 'ADAPTIVE MODE'
+                            bold: True
+                            font_size: 32
+                            font_name: 'fonts/NotoSans-Medium.ttf'
+                            halign: 'center'
+                            pos_hint: {'center_y' : 0.5}
+                        MDSwitch:
+                            id: adapt_switch
+                            pos_hint: {'center_x':0.5,'center_y':0.5}
+                            on_active:
+                                app.switch_state(*args)
+                MDFloatLayout:
+                    size: root.width, root.height*0.1
+                    MDRectangleFlatButton:
+                        text: '%'
+                        pos_hint: {'center_x': 0.4, 'center_y': 0.5}
+                        markup: True
+                        md_bg_color: 1, 0.54,0,1
+                        text_color: 1,1,1,1
+                        bold: True
+                        font_size: 32
+                        on_release:
+                            app.slider_unit_per(*args)
+                    MDRectangleFlatButton:
+                        text: 'km/h'
+                        pos_hint: {'center_x': 0.6, 'center_y': 0.5}
+                        markup: True
+                        md_bg_color: 0,0,0.9,1
+                        text_color: 1,1,1,1
+                        bold: True
+                        font_size: 32
+                        on_release:
+                            app.slider_unit_km(*args)
+                MDBoxLayout:
+                    size: root.width, root.height*0.1
+                    orientation: 'vertical'
+                    padding: '10dp'
 
-
+                    MDSlider:
+                        id: adapt_slider
+                        min: 0
+                        max: 100
+                        step: 5
+                        orientation: 'horizontal'
+                        padding: '10dp'
+                        hint: True
+                        hint_text_color: 'orange'
+                        hint_bg_color: 'white'
+                        thumb_color_disabled: 'grey'
+                        on_value:
+                            app.slider_slide(*args)
+                MDFloatLayout:
+                    MDRectangleFlatButton:
+                        id: angle_button
+                        text: 'Angle : 0°'
+                        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                        on_release:
+                            app.send_angle(*args)
