@@ -6,6 +6,7 @@ from kivymd.app import MDApp
 from datetime import datetime
 from typing import Any, Union
 import uuid as ui
+import json
 
 
 class Connection:
@@ -176,16 +177,23 @@ class Connection:
             self.clear_lists()
 
 
+def get_json_info(msg, var) -> str:
+    try:
+    	return msg[var]
+    except Exception as e:
+    	print(e)
+    	return '0.0'
+
 async def communication_manager(connection: Connection,
                                 write_char: str, read_char: str,
-                                slider_q: asyncio.Queue, battery_q: asyncio.Queue):
+                                send_q: asyncio.Queue, battery_q: asyncio.Queue, angle_q:asyncio.Queue):
     """In charge of sending and receiving information
         + IMPORTANT to pair write and read characteristics between App and ESP32"""
     buffer = list()
     while True:
         if connection.client and connection.connected:
             try:
-                input_str = slider_q.get_nowait()
+                input_str = send_q.get_nowait()
                 buffer.append(input_str)
             except asyncio.QueueEmpty:
                 if len(buffer) > 0:
@@ -197,7 +205,20 @@ async def communication_manager(connection: Connection,
             await asyncio.sleep(0.5)
             msg_read = await connection.client.read_gatt_char(read_char)
             print(f"message received -> {msg_read.decode()}")
-            msg_str = str(msg_read.decode())
-            await battery_q.put(msg_str)
+            
+            msg_json = json.loads(msg_read.decode())
+            try:
+            	bat_str = msg_json['battery']
+            except Exception as e:
+            	print(f'EXCEPTION JSON BATTERY: {e}')
+            	bat_str = '0.0'
+            await battery_q.put(bat_str)
+            try: 
+            	angle_str = msg_json['angle']
+            except Exception as e:
+            	print(f'EXCEPTION JSON ANGLE: {e}')
+            	angle_str = '0'
+            await angle_q.put(angle_str)
+            
         else:
             await asyncio.sleep(2.0)
