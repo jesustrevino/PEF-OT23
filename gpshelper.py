@@ -2,6 +2,7 @@ from kivy.utils import platform
 from kivymd.uix.dialog import MDDialog
 import asyncio
 from math import asin, cos, pi, sqrt
+import time
 
 
 class GpsHelper:
@@ -11,18 +12,31 @@ class GpsHelper:
 
     def run(self, speed_q: asyncio.Queue) -> None:
         self.speed_q = speed_q
+        self.gps_info = []
+        print('in_gps')
+        
         # configure GPS
         if platform == 'android' or platform == 'ios':
             from plyer import gps
             gps.configure(on_location=self.on_location,
                           on_status=self.on_auth_status)
-            gps.start(minTime=self.gps_time, minDistance=self.gps_min_distance)
+            gps.start(minTime=10000, minDistance=1)
+            self.start = time.perf_counter()
 
+     
     def on_location(self, *args, **kwargs):
         """callback used to gather relevant information"""
-        print(f"on_location ->>> {kwargs}")
+        # print(f"on_location ->>> {kwargs}")
         self.velocity = (kwargs['speed'] * 3.6)
-        self.speed_q.put_nowait(self.velocity)
+        kwargs.update({'time':time.time()})
+        self.gps_info.append(kwargs)
+        print(f'on_location -> {self.gps_info}')
+        if len(self.gps_info) > 1:
+            true_speed = self.calculate_speed
+            self.gps_info.pop(0)
+            print(f'true_speed: {true_speed}')
+            self.speed_q.put_nowait(true_speed)
+        # print(f'time_passed {time.perf_counter()-self.start}')
 
     @property
     def calculate_distance(self) -> float:
@@ -41,7 +55,7 @@ class GpsHelper:
         # For current speed a & b will be first & second values on list
         # For average speed it will be first & last values
         distance = self.calculate_distance
-        return int(distance * 3600 / (self.gps_time / 1000))  # Multiplying by 3600 for Km/Hrs
+        return float(distance * 3600 / ((self.gps_info[1]["time"]-self.gps_info[0]["time"])))  # Multiplying by 3600 for Km/Hrs
 
     def on_auth_status(self, general_status: str, status_message: str) -> None:
         if general_status == 'provider-enabled':

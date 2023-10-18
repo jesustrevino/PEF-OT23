@@ -211,14 +211,18 @@ async def communication_manager(connection: Connection,
             	bat_str = msg_json['battery']
             except Exception as e:
             	print(f'EXCEPTION JSON BATTERY: {e}')
-            	bat_str = '0.0'
-            await battery_q.put(bat_str)
+            	bat_str = None
+            if bat_str is not None:
+            	await battery_q.put(bat_str)
             try: 
             	angle_str = msg_json['angle']
+            	print(f'angle_str : {angle_str}')
             except Exception as e:
             	print(f'EXCEPTION JSON ANGLE: {e}')
-            	angle_str = '0'
-            await angle_q.put(angle_str)
+            	angle_str = None
+            if angle_str is not None:
+            	print(f'putting {angle_str} on q')
+            	await angle_q.put(angle_str)
             
         else:
             await asyncio.sleep(2.0)

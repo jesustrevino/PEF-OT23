@@ -65,14 +65,14 @@ class Main(MDApp):
         self.button = self.root.get_screen('main_window').ids.ble_button
         self.circle_bar = self.root.get_screen('secondary_window').ids.circle_progress
         self.speedmeter = self.root.get_screen('secondary_window').ids.speed
-        self.angle_button = self.root.get_screen('secondary_window').ids.angle_button
+        self.an_button = self.root.get_screen('secondary_window').ids.angle_button
         self.speedmeter.font_size_min = self.speedmeter.font_size
         
         self.circle_bar.text = f'0%'
         
         self.per_button_pressed = True
         self.km_button_pressed = False
-        self.angle_button_pressed = False
+        self.angle_button_pressed = None
         
         self.set_angle = 0
         
@@ -170,7 +170,8 @@ class Main(MDApp):
         if touch:
             try:
             	self.send_q.put_nowait(json.dumps({'set_angle', self.set_angle}))
-            except asyncio.QueueFull:
+            	print(f'set_angle : {self.set_angle}')
+            except Exception as e:
             	pass
             self.angle_button_pressed = True
     
@@ -178,13 +179,17 @@ class Main(MDApp):
     	while True:
     	   print('in angle')
     	   try:
-    	   	self.set_angle = await self.angle_q.get()
-    	   	self.set_angle = int(self.set_angle)
-    	   	print(f'angle -> {self.set_angle}')
+    	   	set_angle = await self.angle_q.get()
+    	   	set_angle = float(set_angle)
+    	   	print(f'angle -> {set_angle}')
+    	   	self.an_button.text = f'Angle : {set_angle}°' 
     	   except Exception as e:
-    	   	self.set_angle = 0
+    	   	print(f'EXCEPTION IN ANGLE : {e}')
+    	   	set_angle = 0
     	   	await asyncio.sleep(1.0)
-    	   self.angle_button.text = f'Angle : {self.set_angle}°' 
+    	   print(f'angle displayed: {set_angle}')
+    	   self.set_angle = set_angle
+    	   
     	   if self.angle_button_pressed:
     	   	break
 
@@ -227,6 +232,8 @@ class Main(MDApp):
                 await asyncio.sleep(2.0)
             if battery_life > 100:
                 battery_life = int(100)
+            elif battery_life < 0:
+            	battery_life = 0
             else:
                 self.circle_bar.set_value = battery_life
                 self.circle_bar.text = f'{battery_life}%'
