@@ -193,15 +193,15 @@ async def communication_manager(connection: Connection,
     while True:
         if connection.client and connection.connected:
             try:
-                input_str = send_q.get_nowait()
-                buffer.append(input_str)
+                    input_str = send_q.get_nowait()
+                    buffer.append(input_str)
             except asyncio.QueueEmpty:
-                if len(buffer) > 0:
-                    input_str = f"{buffer[0]}\n"
-                    buffer.clear()
-                    bytes_to_send = bytearray(map(ord, str(input_str)))
-                    await connection.client.write_gatt_char(write_char, bytes_to_send, response=True)
-                    print(f"Sent: {input_str}")
+                    if len(buffer) > 0:
+                    	input_str = f"{buffer[0]} \n"
+                    	buffer.clear()
+                    	bytes_to_send = bytearray(map(ord, str(input_str)))
+                    	await connection.client.write_gatt_char(write_char, bytes_to_send, response=True)
+                    	print(f'send_str: {input_str}')
             await asyncio.sleep(0.5)
             msg_read = await connection.client.read_gatt_char(read_char)
             print(f"message received -> {msg_read.decode()}")

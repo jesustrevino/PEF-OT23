@@ -87,7 +87,7 @@ class Main(MDApp):
                     print('Did not get all permissions')
 
             try:
-                request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION, Permission.BLUETOOTH, Permission.BLUETOOTH_ADMIN, Permission.WAKE_LOCK, Permission.BLUETOOTH_CONNECT,
+                request_permissions([Permission.ACCESS_COARSE_LOCATION, Permission.ACCESS_FINE_LOCATION, Permission.BLUETOOTH, Permission.BLUETOOTH_ADMIN, Permission.WAKE_LOCK, Permission.BLUETOOTH_CONNECT, Permission.ACCESS_BACKGROUND_LOCATION,
                 callback])
             except Exception as e:
                 print(e)
@@ -171,9 +171,10 @@ class Main(MDApp):
             try:
             	self.send_q.put_nowait(json.dumps({'set_angle', self.set_angle}))
             	print(f'set_angle : {self.set_angle}')
+            	# self.angle_button_pressed = True
             except Exception as e:
             	pass
-            self.angle_button_pressed = True
+            
     
     async def update_angle_value(self) -> None:
     	while True:
@@ -205,13 +206,13 @@ class Main(MDApp):
                 await self.send_q.put(json.dumps({'speed': speed}))
             except Exception as e:
                 print(f'Exception in speed:: {e}')
-                speed = float(0.0)
                 await asyncio.sleep(1.0)
             if float(speed) > 2 * self.speedmeter.end_value / 3.6:
                 pass
             else:
-                self.speedmeter.set_value = speed - 25
-                self.speedmeter.text = f'{int(speed)} km/h'
+            	self.speedmeter.set_value = speed - 25
+            	self.speedmeter.text = f'{int(speed)} km/h'
+            
 
     async def update_battery_value(self) -> None:
         """Monitors Battery life from bike"""
@@ -222,21 +223,20 @@ class Main(MDApp):
             print("in battery")
             try:
                 current_battery_life = float(await self.battery_q.get())
-                battery_life = (current_battery_life - min_battery_voltage) / (
-                        max_battery_voltage - min_battery_voltage)
+                battery_life = current_battery_life
                 battery_life = int(battery_life)
                 print(f"battery-> {battery_life}")
+                if battery_life > 100:
+                    battery_life = int(100)
+                elif battery_life < 0:
+            	    battery_life = 0
+                else:
+                    self.circle_bar.set_value = battery_life
+                    self.circle_bar.text = f'{battery_life}%'
             except Exception as e:
                 print(f'Exception in battery:: {e}')
-                battery_life = int(0)
                 await asyncio.sleep(2.0)
-            if battery_life > 100:
-                battery_life = int(100)
-            elif battery_life < 0:
-            	battery_life = 0
-            else:
-                self.circle_bar.set_value = battery_life
-                self.circle_bar.text = f'{battery_life}%'
+            
 
 
 async def run_BLE(app: MDApp, send_q: asyncio.Queue, battery_q: asyncio.Queue, drop_q: asyncio.Queue, angle_q: asyncio.Queue) -> None:
