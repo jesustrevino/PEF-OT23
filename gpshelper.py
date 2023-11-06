@@ -20,7 +20,7 @@ class GpsHelper:
             from plyer import gps
             gps.configure(on_location=self.on_location,
                           on_status=self.on_auth_status)
-            gps.start(minTime=1000.0, minDistance=0.1)
+            gps.start(minTime=1000.0, minDistance=8.0)
             self.start = time.perf_counter()
 
      
@@ -34,11 +34,12 @@ class GpsHelper:
         if len(self.gps_info) > 1:
             true_speed = self.calculate_speed
             self.gps_info.pop(0)
-            print(f'true_speed: {true_speed}')
-            self.speed_q.put_nowait(true_speed)
+            print(f'true_speed_haver: {true_speed}')
+            print(f'gps_speed: {self.velocity}')
+            # self.speed_q.put_nowait(true_speed)
+            self.speed_q.put_nowait(self.velocity)
         # print(f'time_passed {time.perf_counter()-self.start}')
 
-    @property
     def calculate_distance(self) -> float:
         r = 6371  # radius of Earth
         p = pi / 180  # multiply this to convert Degrees to Radians
@@ -50,7 +51,6 @@ class GpsHelper:
         return 2 * r * asin(
             sqrt(0.5 - cos((lat2 - lat1) * p) / 2 + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2))
 
-    @property
     def calculate_speed(self) -> float:
         # For current speed a & b will be first & second values on list
         # For average speed it will be first & last values
