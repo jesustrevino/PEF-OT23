@@ -132,7 +132,7 @@ WindowManager:
                         line_color: 1,0.54,0,1
                         thickness: 10
                         MDLabel:
-                            text: 'ADAPTIVE MODE'
+                            text: 'MOTION DETECT'
                             bold: True
                             font_size: 32
                             font_name: 'NotoSans-Medium.ttf'
@@ -176,13 +176,14 @@ WindowManager:
                         max: 100
                         step: 5
                         orientation: 'horizontal'
-                        padding: '10dp'
+                        padding: '20dp'
                         hint: True
                         hint_text_color: 'orange'
                         hint_bg_color: 'white'
                         thumb_color_disabled: 'grey'
                         on_value:
-                            app.slider_slide(*args)
+                            app.slider_on_value(*args)
+                        on_touch_up: if self.collide_point(*args[1].pos): app.slider_touch_up(*args)
                 MDFloatLayout:
                     MDRectangleFlatButton:
                         id: angle_button

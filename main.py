@@ -12,12 +12,13 @@ from CircularProgressBar import CircularProgressBar
 
 from BLE import Connection, communication_manager
 from gpshelper import GpsHelper
-
+from acchelper import AccHelper
 
 
 # ADDRESS, UUID = "78:21:84:9D:37:10", "0000181a-0000-1000-8000-00805f9b34fb"
 ADDRESS, UUID = None, None
 GPS_ON = True
+DEBUG_GPS = True
 
 
 class MainWindow(Screen): pass
@@ -39,6 +40,7 @@ class Main(MDApp):
     drop_q = asyncio.Queue()
     battery_q = asyncio.Queue()
     angle_q = asyncio.Queue()
+    acc_q = asyncio.Queue()
 
     def build(self):
         """setting design for application widget development specifications on design.kv"""
@@ -72,9 +74,12 @@ class Main(MDApp):
         
         self.per_button_pressed = True
         self.km_button_pressed = False
-        self.angle_button_pressed = None
+        self.angle_button_pressed = False
         
         self.set_angle = 0
+        self.slider_label = 'slider'
+        self.slider_value = 0
+        self.slider_flag = False
         
     def get_permissions(self):
     	# Request permissions on Android
@@ -96,8 +101,12 @@ class Main(MDApp):
         """Function handling BLE connection between App and ESP32"""
         if touch:
             try:
-                asyncio.create_task(run_BLE(self, self.send_q, self.battery_q, self.drop_q, self.angle_q))
+                if DEBUG_GPS:
+                	self.root.current = 'secondary_window'
+                else:
+                	asyncio.create_task(run_BLE(self, self.send_q, self.battery_q, self.drop_q, self.angle_q))
                 GpsHelper().run(self.speed_q)
+                AccHelper().run(self.send_q)
                 asyncio.ensure_future(self.update_battery_value())
                 asyncio.ensure_future(self.update_speed_value())
                 asyncio.ensure_future(self.update_angle_value())
@@ -121,10 +130,10 @@ class Main(MDApp):
             self.root.get_screen('secondary_window').ids.adapt_slider.value = self.root.get_screen(
                 'secondary_window').ids.adapt_slider.min
         else:
-            self.root.get_screen('secondary_window').ids.adapt_slider.disabled = False
+            # self.root.get_screen('secondary_window').ids.adapt_slider.disabled = False
             self.send_q.put_nowait(json.dumps({'adapt': 0}))
 
-    def slider_slide(self, _, value: int) -> None:
+    def slider_on_value(self, _, value: int) -> None:
         """Sends percentage of assistance wanted to ESP32
         In automatic mode: Use BATTERY and ACCELEROMETER values to determine percentage of use"""
         # print(value)
@@ -135,14 +144,25 @@ class Main(MDApp):
         if self.km_button_pressed:
             value = value
             label = 'slider_km'
-        try:
-            self.send_q.put_nowait(json.dumps({label: value}))
-        except asyncio.QueueFull:
-            pass
+        self.slider_label = label
+        self.slider_value = value
         if value == self.root.get_screen('secondary_window').ids.adapt_slider.max:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "red"
+            if not self.slider_flag:
+            	self.send_q.put_nowait(json.dumps({self.slider_label: self.slider_value}))
+            	self.slider_flag = True
+        elif value == self.root.get_screen('secondary_window').ids.adapt_slider.min and not self.slider_flag:
+            self.send_q.put_nowait(json.dumps({self.slider_label: self.slider_value}))
+            self.slider_flag = True
         else:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "orange"
+            self.slider_flag = False
+            
+    def slider_touch_up(self, *args) -> None:
+        try:
+            self.send_q.put_nowait(json.dumps({self.slider_label: self.slider_value}))
+        except asyncio.QueueFull:
+            pass
             
     def slider_unit_km(self, touch: bool) -> None:
         if touch:
@@ -167,13 +187,14 @@ class Main(MDApp):
             self.root.get_screen('secondary_window').ids.adapt_slider.thumb_color_active = "orange"
     
     def send_angle(self, touch: bool) -> None:
+        print('in_touch_angle')
         if touch:
             try:
-            	self.send_q.put_nowait(json.dumps({'set_angle', self.set_angle}))
+            	self.send_q.put_nowait(json.dumps({'set_angle': int(self.set_angle)}))
             	print(f'set_angle : {self.set_angle}')
-            	# self.angle_button_pressed = True
+            	# self._pressed = True
             except Exception as e:
-            	pass
+            	print(f'EXCEPTION IN ANGLE : {e}')
             
     
     async def update_angle_value(self) -> None:
@@ -192,6 +213,7 @@ class Main(MDApp):
     	   self.set_angle = set_angle
     	   
     	   if self.angle_button_pressed:
+    	   	print('angle_pressed')
     	   	break
 
     async def update_speed_value(self) -> None:

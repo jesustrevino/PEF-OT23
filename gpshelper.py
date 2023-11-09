@@ -3,12 +3,15 @@ from kivymd.uix.dialog import MDDialog
 import asyncio
 from math import asin, cos, pi, sqrt
 import time
+import csv
 
 
 class GpsHelper:
     gps_time: float = 2000
     gps_min_distance: float = 0.0
     velocity: int = 0
+    csv_debug: list = []
+    i: int = 0
 
     def run(self, speed_q: asyncio.Queue) -> None:
         self.speed_q = speed_q
@@ -20,7 +23,7 @@ class GpsHelper:
             from plyer import gps
             gps.configure(on_location=self.on_location,
                           on_status=self.on_auth_status)
-            gps.start(minTime=1000.0, minDistance=8.0)
+            gps.start(minTime=1000.0, minDistance=3.0)
             self.start = time.perf_counter()
 
      
@@ -28,17 +31,25 @@ class GpsHelper:
         """callback used to gather relevant information"""
         # print(f"on_location ->>> {kwargs}")
         self.velocity = (kwargs['speed'] * 3.6)
+        self.i += 1
         kwargs.update({'time':time.time()})
+        self.csv_debug.append(time.time())
         self.gps_info.append(kwargs)
-        print(f'on_location -> {self.gps_info}')
+        print(f'on_location -> {self.gps_info}, {self.i}')
+        self.speed_q.put_nowait(self.velocity)
+        if self.i > 50:
+            print('writing_csv')
+            self.i = 0
+            print(f'gps_csv: {self.csv_debug}')
         if len(self.gps_info) > 1:
             true_speed = self.calculate_speed
             self.gps_info.pop(0)
             print(f'true_speed_haver: {true_speed}')
             print(f'gps_speed: {self.velocity}')
             # self.speed_q.put_nowait(true_speed)
-            self.speed_q.put_nowait(self.velocity)
+            # self.speed_q.put_nowait(self.velocity)
         # print(f'time_passed {time.perf_counter()-self.start}')
+        
 
     def calculate_distance(self) -> float:
         r = 6371  # radius of Earth
