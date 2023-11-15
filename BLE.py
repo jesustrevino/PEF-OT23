@@ -61,7 +61,7 @@ class Connection:
                     await self.select_device()
                 except Exception as e:
                     print(e)
-                await asyncio.sleep(15.0)
+                await asyncio.sleep(3.0)
 
     def set_connect_flag(self):
         self.flag.set()
@@ -82,6 +82,7 @@ class Connection:
                     try:
                         self.client.set_disconnected_callback(self.on_disconnect)
                         print(self.client.services.characteristics)
+                        self.set_connect_flag()  # setting flag into asyncio notify
                         await self.client.start_notify(self.read_char, self.notification_handler)
                     except Exception as e:
                         print(f'IN EXCEPTION TRYING TO CONNECT {e}')
@@ -89,7 +90,7 @@ class Connection:
                         if not self.connected:
                             self.app.root.current = 'main_window'
                             break
-                        await asyncio.sleep(3.0)
+                        await asyncio.sleep(1.0)
                 else:
                     print(f"Failed to connect to {self.connected_device.name}")
             except Exception as e:
@@ -155,8 +156,7 @@ class Connection:
             # print(f'CLient services: {self.client.get_services()}')     
         except Exception as e:
             print(f"There was a problem connecting to device... {e}")
-        finally:
-            self.set_connect_flag()  # setting flag into asyncio notify
+            
 
     def record_time_info(self) -> None:
         present_time = datetime.now()
@@ -186,23 +186,31 @@ def get_json_info(msg, var) -> str:
 
 async def communication_manager(connection: Connection,
                                 write_char: str, read_char: str,
-                                send_q: asyncio.Queue, battery_q: asyncio.Queue, angle_q:asyncio.Queue):
+                                send_q: asyncio.Queue, battery_q: asyncio.Queue, angle_q:asyncio.Queue, man_q: asyncio.Queue):
     """In charge of sending and receiving information
         + IMPORTANT to pair write and read characteristics between App and ESP32"""
     buffer = list()
     while True:
         if connection.client and connection.connected:
             try:
-                    input_str = send_q.get_nowait()
-                    buffer.append(input_str)
-            except asyncio.QueueEmpty:
+                    print(f'q_size -> {send_q.qsize()}')
+                    if send_q.qsize() > 1:
+                        for i in range(send_q.qsize()):
+                            input_str = await send_q.get()
+                            buffer.append(str(input_str))
+                    else:
+                        buffer.append(str(send_q.get_nowait()))
                     if len(buffer) > 0:
                     	input_str = f"{buffer[0]} \n"
+                    	for i in buffer:
+                    	    bytes_to_send = bytearray(map(ord, str(i)))
+                    	    await connection.client.write_gatt_char(write_char, bytes_to_send, response = True)
+                    	    await asyncio.sleep(0.2)
+                    	print(f'send_str: {str(buffer)}')
                     	buffer.clear()
-                    	bytes_to_send = bytearray(map(ord, str(input_str)))
-                    	await connection.client.write_gatt_char(write_char, bytes_to_send, response=True)
-                    	print(f'send_str: {input_str}')
-            await asyncio.sleep(0.5)
+            except asyncio.QueueEmpty:
+            	    print('EXCEPTION_BLE')
+            await asyncio.sleep(0.1)
             msg_read = await connection.client.read_gatt_char(read_char)
             print(f"message received -> {msg_read.decode()}")
             
@@ -220,9 +228,17 @@ async def communication_manager(connection: Connection,
             except Exception as e:
             	print(f'EXCEPTION JSON ANGLE: {e}')
             	angle_str = None
+            try:
+            	man_str = msg_json['manipulation']
+            except Exception as e:
+            	print(f'EXCEPTION JSON MAN: {e}')
+            	man_str = None
             if angle_str is not None:
             	print(f'putting {angle_str} on q')
             	await angle_q.put(angle_str)
+            if man_str is not None:
+            	await man_q.put(man_str)
+            	print(f'man_str: {man_str}')
             
         else:
             await asyncio.sleep(2.0)

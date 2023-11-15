@@ -13,13 +13,13 @@ from CircularProgressBar import CircularProgressBar
 from BLE import Connection, communication_manager
 from gpshelper import GpsHelper
 from acchelper import AccHelper
+from gyrohelper import GyroHelper
 
 
 # ADDRESS, UUID = "78:21:84:9D:37:10", "0000181a-0000-1000-8000-00805f9b34fb"
 ADDRESS, UUID = None, None
 GPS_ON = True
-DEBUG_GPS = True
-
+DEBUG_GPS = False
 
 class MainWindow(Screen): pass
 
@@ -41,6 +41,7 @@ class Main(MDApp):
     battery_q = asyncio.Queue()
     angle_q = asyncio.Queue()
     acc_q = asyncio.Queue()
+    man_q = asyncio.Queue()
 
     def build(self):
         """setting design for application widget development specifications on design.kv"""
@@ -68,6 +69,7 @@ class Main(MDApp):
         self.circle_bar = self.root.get_screen('secondary_window').ids.circle_progress
         self.speedmeter = self.root.get_screen('secondary_window').ids.speed
         self.an_button = self.root.get_screen('secondary_window').ids.angle_button
+        self.manip_button = self.root.get_screen('secondary_window').ids.manip_button
         self.speedmeter.font_size_min = self.speedmeter.font_size
         
         self.circle_bar.text = f'0%'
@@ -104,9 +106,8 @@ class Main(MDApp):
                 if DEBUG_GPS:
                 	self.root.current = 'secondary_window'
                 else:
-                	asyncio.create_task(run_BLE(self, self.send_q, self.battery_q, self.drop_q, self.angle_q))
+                	asyncio.create_task(run_BLE(self, self.send_q, self.battery_q, self.drop_q, self.angle_q, self.man_q))
                 GpsHelper().run(self.speed_q)
-                AccHelper().run(self.send_q)
                 asyncio.ensure_future(self.update_battery_value())
                 asyncio.ensure_future(self.update_speed_value())
                 asyncio.ensure_future(self.update_angle_value())
@@ -125,12 +126,13 @@ class Main(MDApp):
     def switch_state(self, _, value: bool) -> None:
         """Switch state for adaptive mode switch. When in adaptive mode, the slider is disabled"""
         if value:
-            self.root.get_screen('secondary_window').ids.adapt_slider.disabled = True
+            self.root.get_screen('secondary_window').ids.adapt_slider.disabled = False
             self.send_q.put_nowait(json.dumps({'adapt': 1}))
             self.root.get_screen('secondary_window').ids.adapt_slider.value = self.root.get_screen(
                 'secondary_window').ids.adapt_slider.min
         else:
             # self.root.get_screen('secondary_window').ids.adapt_slider.disabled = False
+            self.root.get_screen('secondary_window').ids.adapt_slider.disabled = False
             self.send_q.put_nowait(json.dumps({'adapt': 0}))
 
     def slider_on_value(self, _, value: int) -> None:
@@ -199,28 +201,31 @@ class Main(MDApp):
     
     async def update_angle_value(self) -> None:
     	while True:
-    	   print('in angle')
+    	   print('in_angle')
     	   try:
     	   	set_angle = await self.angle_q.get()
     	   	set_angle = float(set_angle)
     	   	print(f'angle -> {set_angle}')
-    	   	self.an_button.text = f'Angle : {set_angle}°' 
+    	   	self.an_button.text = f'Angle : {set_angle}°'
     	   except Exception as e:
     	   	print(f'EXCEPTION IN ANGLE : {e}')
-    	   	set_angle = 0
     	   	await asyncio.sleep(1.0)
     	   print(f'angle displayed: {set_angle}')
     	   self.set_angle = set_angle
+    	   try:
+    	   	manipulation = self.man_q.get_nowait()
+    	   	# manipulation = int(manipulation)
+    	   	print(f'manipulation: {manipulation}')
+    	   	self.manip_button.text = f'M : {manipulation}'
+    	   except Exception as e:
+    	   	print(f'EXCEPTION IN MANIP : {e}')
     	   
-    	   if self.angle_button_pressed:
-    	   	print('angle_pressed')
-    	   	break
 
     async def update_speed_value(self) -> None:
         """Monitors current speed of bike"""
         speed = 0
         while True:
-            print("in speed")
+            print("in_speed")
             try:
                 speed = await self.speed_q.get()
                 speed = float(speed)
@@ -242,7 +247,7 @@ class Main(MDApp):
         min_battery_voltage = 20.0  # V //Lowest voltage before battery starts getting damaged
         battery_life = 0
         while True:
-            print("in battery")
+            print("in_battery")
             try:
                 current_battery_life = float(await self.battery_q.get())
                 battery_life = current_battery_life
@@ -261,7 +266,7 @@ class Main(MDApp):
             
 
 
-async def run_BLE(app: MDApp, send_q: asyncio.Queue, battery_q: asyncio.Queue, drop_q: asyncio.Queue, angle_q: asyncio.Queue) -> None:
+async def run_BLE(app: MDApp, send_q: asyncio.Queue, battery_q: asyncio.Queue, drop_q: asyncio.Queue, angle_q: asyncio.Queue, man_q: asyncio.Queue) -> None:
     """Asyncronous connection protocol for BLE"""
     print('in run_BLE')
     read_char = "00002A3D-0000-1000-8000-00805f9b34fb"
@@ -281,11 +286,15 @@ async def run_BLE(app: MDApp, send_q: asyncio.Queue, battery_q: asyncio.Queue, d
                                                     write_char=read_char,
                                                     read_char=read_char,
                                                     send_q=send_q,
-                                                    battery_q=battery_q, angle_q=angle_q))
+                                                    battery_q=battery_q, angle_q=angle_q,
+                                                    man_q=man_q))
         print(f"fetching connection")
         await connection.flag.wait()
     finally:
         print(f"flag status confirmed!")
+        AccHelper().run(send_q)
+        
+        
         
     try: 
         app.root.current = 'secondary_window'

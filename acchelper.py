@@ -20,8 +20,9 @@ class AccHelper:
                 if not self.sensorEnabled:
                     self.accelerometer.enable()
                     print('acc_enable')
-                    asyncio.ensure_future(self.get_acceleration(0.2))
+                    asyncio.ensure_future(self.get_acceleration(1))
                     self.sensorEnabled = True
+                    self.init_velo = 0
                 else:
                     self.accelerometer.disable()
                     self.sensorEnabled = False
@@ -38,7 +39,8 @@ class AccHelper:
         		self.z = val[2]
         		print(f'accelerometer_values: {val}')
         		try:
-        			await self.acc_q.put(json.dumps({'acc': val[1]}))
+        			# await self.acc_q.put(json.dumps({'acc_x': val[0]}))
+        			self.acc_q.put_nowait(json.dumps({'acc_y': self.y}))
         		except Exception as e:
         			print(f'EXCEPTION ACC :: {e}')
         	await asyncio.sleep(dt)

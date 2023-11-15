@@ -7,8 +7,8 @@ import csv
 
 
 class GpsHelper:
-    gps_time: float = 2000
-    gps_min_distance: float = 0.0
+    gps_time: float = 500
+    gps_min_distance: float = 3.0
     velocity: int = 0
     csv_debug: list = []
     i: int = 0
@@ -23,21 +23,26 @@ class GpsHelper:
             from plyer import gps
             gps.configure(on_location=self.on_location,
                           on_status=self.on_auth_status)
-            gps.start(minTime=1000.0, minDistance=3.0)
+            gps.start(minTime=self.gps_time, minDistance = self.gps_min_distance)
             self.start = time.perf_counter()
 
      
     def on_location(self, *args, **kwargs):
         """callback used to gather relevant information"""
         # print(f"on_location ->>> {kwargs}")
-        self.velocity = (kwargs['speed'] * 3.6)
-        self.i += 1
-        kwargs.update({'time':time.time()})
-        self.csv_debug.append(time.time())
-        self.gps_info.append(kwargs)
-        print(f'on_location -> {self.gps_info}, {self.i}')
-        self.speed_q.put_nowait(self.velocity)
-        if self.i > 50:
+        print(f'on_loc -> {time.time()}')
+        if kwargs['accuracy'] < 25:
+            self.velocity = (kwargs['speed'] * 3.6)
+            self.i += 1
+            kwargs.update({'time':time.time()})
+            self.csv_debug.append(time.time())
+            self.gps_info.append(kwargs)
+            print(f'on_location -> {self.gps_info}, {self.i}')
+            # FILTERING INFORMATION NEEDED:
+            self.speed_q.put_nowait(self.velocity)
+        else:
+            print(f'on_location_ERROR: Accuracy too low!')
+        if self.i > 15:
             print('writing_csv')
             self.i = 0
             print(f'gps_csv: {self.csv_debug}')
@@ -50,7 +55,7 @@ class GpsHelper:
             # self.speed_q.put_nowait(self.velocity)
         # print(f'time_passed {time.perf_counter()-self.start}')
         
-
+    
     def calculate_distance(self) -> float:
         r = 6371  # radius of Earth
         p = pi / 180  # multiply this to convert Degrees to Radians
