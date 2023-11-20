@@ -243,8 +243,6 @@ class Main(MDApp):
 
     async def update_battery_value(self) -> None:
         """Monitors Battery life from bike"""
-        max_battery_voltage = 23.7  # V //Voltage gotten when fully charged
-        min_battery_voltage = 20.0  # V //Lowest voltage before battery starts getting damaged
         battery_life = 0
         while True:
             print("in_battery")
