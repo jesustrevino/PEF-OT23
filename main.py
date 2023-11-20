@@ -247,8 +247,8 @@ class Main(MDApp):
         while True:
             print("in_battery")
             try:
-                current_battery_life = float(await self.battery_q.get())
-                battery_life = current_battery_life
+                current_battery_life = await self.battery_q.get()
+                battery_life = float(current_battery_life)
                 battery_life = int(battery_life)
                 print(f"battery-> {battery_life}")
                 if battery_life > 100:
