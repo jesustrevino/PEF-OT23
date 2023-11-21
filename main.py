@@ -136,8 +136,7 @@ class Main(MDApp):
             self.send_q.put_nowait(json.dumps({'adapt': 0}))
 
     def slider_on_value(self, _, value: int) -> None:
-        """Sends percentage of assistance wanted to ESP32
-        In automatic mode: Use BATTERY and ACCELEROMETER values to determine percentage of use"""
+        """Sends percentage of assistance wanted to ESP32"""
         # print(value)
         label = 'slider'
         if self.per_button_pressed:
