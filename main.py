@@ -71,6 +71,8 @@ class Main(MDApp):
         self.an_button = self.root.get_screen('secondary_window').ids.angle_button
         self.manip_button = self.root.get_screen('secondary_window').ids.manip_button
         self.speedmeter.font_size_min = self.speedmeter.font_size
+        self.sp_button = self.root.get_screen('secondary_window').ids.sp_button
+        self.read_slider_text = self.root.get_screen('secondary_window').ids.read_slider_text
         
         self.circle_bar.text = f'0%'
         
@@ -111,6 +113,7 @@ class Main(MDApp):
                 asyncio.ensure_future(self.update_battery_value())
                 asyncio.ensure_future(self.update_speed_value())
                 asyncio.ensure_future(self.update_angle_value())
+                asyncio.ensure_future(self.update_manipulation_value())
                 
             except Exception as e:
                 print(e)
@@ -148,6 +151,12 @@ class Main(MDApp):
             label = 'slider_km'
         self.slider_label = label
         self.slider_value = value
+        if label == 'slider_km':
+            self.sp_button.text = f'SP: {value}'
+            self.read_slider_text = f'{value} km/h'
+        elif label == 'slider_per':
+            self.read_slider_text = f'{value} %'
+            
         if value == self.root.get_screen('secondary_window').ids.adapt_slider.max:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "red"
             if not self.slider_flag:
@@ -212,15 +221,20 @@ class Main(MDApp):
     	   	await asyncio.sleep(1.0)
     	   print(f'angle displayed: {set_angle}')
     	   self.set_angle = set_angle
-    	   try:
-    	   	manipulation = self.man_q.get_nowait()
-    	   	# manipulation = int(manipulation)
-    	   	print(f'manipulation: {manipulation}')
-    	   	self.manip_button.text = f'M : {manipulation}'
-    	   except Exception as e:
-    	   	print(f'EXCEPTION IN MANIP : {e}')
-    	   
 
+    async def update_manipulation_value(self) -> None:
+        """FOR DEBUGGING PURPOSES"""
+        manip = 0
+        while True:
+            print('in_manipulation')
+            try:
+                manip = await self.man_q.get()
+                manip = int(manip)
+                print(f'manip -> {manip}')
+                self.manip_button.text = f'M: {manip}'
+            except Excception as e:
+                print(f'EXCEPTION IN MANIP: {e}')
+            
     async def update_speed_value(self) -> None:
         """Monitors current speed of bike"""
         speed = 0
