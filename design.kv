@@ -191,5 +191,9 @@ WindowManager:
                         pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                         on_release:
                             app.send_angle(*args)
+                    MDRectangleFlatButton:
+                        id: manip_button
+                        text: 'M : 0'
+                        pos_hint: {'center_x': 0.5, 'center_y': 0.2}
 
 
