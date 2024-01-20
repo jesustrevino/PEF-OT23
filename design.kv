@@ -115,6 +115,24 @@ WindowManager:
                     end_value: 360
                     set_value: 0
                     tick: 1
+                MDRectangleFlatButton:
+                    id: sp_button
+                    text: 'SP: 0'
+                    pos_hint: {'center_x': 0.4, 'center_y': 0.5}
+                    markup: True
+                    md_bg_color: 1, 0.54,0,1
+                    text_color: 1,1,1,1
+                    bold: True
+                    font_size: 54
+                MDRectangleFlatButton:
+                    id: manip_button
+                    text: 'M: 0'
+                    pos_hint: {'center_x': 0.6, 'center_y': 0.5}
+                    markup: True
+                    md_bg_color: 1, 0.54,0,1
+                    text_color: 1,1,1,1
+                    bold: True
+                    font_size: 54
         MDBottomNavigationItem:
             name: 'screen 2'
             text: 'settings'
@@ -144,27 +162,37 @@ WindowManager:
                             on_active:
                                 app.switch_state(*args)
                 MDFloatLayout:
-                    size: root.width, root.height*0.1
+                    size: root.width, root.height*0.3 
                     MDRectangleFlatButton:
-                        text: '%'
-                        pos_hint: {'center_x': 0.4, 'center_y': 0.5}
+                        text: 'MANUAL %'
+                        pos_hint: {'center_x': 0.3, 'center_y': 0.5}
                         markup: True
                         md_bg_color: 1, 0.54,0,1
                         text_color: 1,1,1,1
                         bold: True
-                        font_size: 32
+                        font_size: 28
                         on_release:
                             app.slider_unit_per(*args)
                     MDRectangleFlatButton:
-                        text: 'km/h'
-                        pos_hint: {'center_x': 0.6, 'center_y': 0.5}
+                        text: 'AUTOMATIC km/h'
+                        pos_hint: {'center_x': 0.7, 'center_y': 0.5}
                         markup: True
                         md_bg_color: 0,0,0.9,1
                         text_color: 1,1,1,1
                         bold: True
-                        font_size: 32
+                        font_size: 28
                         on_release:
                             app.slider_unit_km(*args)
+                MDBoxLayout:  
+                    size: root.width, root.height*0.1                          
+                    MDLabel:
+                        id: read_slider_text
+                        text: '0'
+                        pos_hint: {'center_x': 0.5, 'center_y': 0.5} 
+                        halign: 'center'
+                        font_size: 54
+                        font_name: 'NotoSans-Medium.ttf'
+                        bold: True          
                 MDBoxLayout:
                     size: root.width, root.height*0.1
                     orientation: 'vertical'
@@ -191,9 +219,16 @@ WindowManager:
                         pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                         on_release:
                             app.send_angle(*args)
-                    MDRectangleFlatButton:
-                        id: manip_button
-                        text: 'M : 0'
-                        pos_hint: {'center_x': 0.5, 'center_y': 0.2}
-
+        MDBottomNavigationItem:
+            name: 'screen 3'
+            text: 'test'
+            MDFloatLayout:
+                orientation: 'vertical'
+                size: root.width, root.height
+                MDRectangleFlatButton:
+                   id: test_button
+                   text: 'test: 0'
+                   pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                   on_release:
+                      app.test_button_press(*args) 
 

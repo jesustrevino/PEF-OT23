@@ -22,19 +22,14 @@ Requirements needed to build Android kivy App:
        1. Add ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, ACCESS_BACKGROUND_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN, WAKE_LOCK
 11. Go back to terminal, and type all commands to update dependencies
     1. sudo apt install -y git zip unzip openjdk-11-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev
-    2. pip3 install --user --upgrade Cython==0.29.33 virtualenv
+    2. sudo apt-get install --user --upgrade cython virtualenv
        1. IF ALREADY WORKING ON A VIRTUAL ENV OMIT --user
 12. Deploy App 
-    1. TERMINAL -> buildozer android debug deploy run logcat.
-
-*_SUGGESTED:_* installing adb when connecting the phone to Linux is highly recommended. It helps in gaining authorization when connecting and establishes a safe connection.
-TERMINAL -> sudo apt-get install adb
--> adb devices [LISTS ALL CONNECTED DEVICES VIA USB]
+    1. TERMINAL -> buildozer android debug deploy run logcat.   
 
 *_IMPORTANT:_* Some debugging may be necessary. If app doesn't deploy, check documentation. The following links are recommended:
 + buildozer.readthedocs.io/en/latest/installation.html
 + If an ERROR occurred with Cython https://github.com/kivy/buildozer/issues/1235
-+ Concerning Cython, if it says is not installed CHECK: https://stackoverflow.com/questions/66973759/cython-not-found-please-install-it-error-in-buildozer
 + NEED TO CHECK Java file is correct: ./Gradlew
   + TERMINAL -> sudo apt-get install openjdk-version-jdk
   + The Error Message includes the version compatible with the project

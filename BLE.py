@@ -90,7 +90,7 @@ class Connection:
                         if not self.connected:
                             self.app.root.current = 'main_window'
                             break
-                        await asyncio.sleep(1.0)
+                        await asyncio.sleep(10.0)
                 else:
                     print(f"Failed to connect to {self.connected_device.name}")
             except Exception as e:
@@ -177,13 +177,6 @@ class Connection:
             self.clear_lists()
 
 
-def get_json_info(msg, var) -> str:
-    try:
-    	return msg[var]
-    except Exception as e:
-    	print(e)
-    	return '0.0'
-
 async def communication_manager(connection: Connection,
                                 write_char: str, read_char: str,
                                 send_q: asyncio.Queue, battery_q: asyncio.Queue, angle_q:asyncio.Queue, man_q: asyncio.Queue):
@@ -205,7 +198,7 @@ async def communication_manager(connection: Connection,
                     	for i in buffer:
                     	    bytes_to_send = bytearray(map(ord, str(i)))
                     	    await connection.client.write_gatt_char(write_char, bytes_to_send, response = True)
-                    	    await asyncio.sleep(0.2)
+                    	    await asyncio.sleep(0.1)
                     	print(f'send_str: {str(buffer)}')
                     	buffer.clear()
             except asyncio.QueueEmpty:
@@ -214,7 +207,7 @@ async def communication_manager(connection: Connection,
             msg_read = await connection.client.read_gatt_char(read_char)
             print(f"message received -> {msg_read.decode()}")
             
-            msg_json = json.loads(msg_read.decode())
+            msg_json = json.loads(msg_read.decode()) # converts bytes to JSON
             try:
             	bat_str = msg_json['battery']
             except Exception as e:
@@ -239,6 +232,12 @@ async def communication_manager(connection: Connection,
             if man_str is not None:
             	await man_q.put(man_str)
             	print(f'man_str: {man_str}')
+            try:
+               flag_str = msg_json['flag']
+            except Exception as e:
+               flag_str = None
+            if flag_str is not None:
+               await flag_q.put(flag_str)
             
         else:
             await asyncio.sleep(2.0)

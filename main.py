@@ -27,6 +27,7 @@ class MainWindow(Screen): pass
 class SecondaryWindow(Screen): pass
 
 
+
 class WindowManager(ScreenManager): pass
 
 
@@ -73,8 +74,11 @@ class Main(MDApp):
         self.speedmeter.font_size_min = self.speedmeter.font_size
         self.sp_button = self.root.get_screen('secondary_window').ids.sp_button
         self.read_slider_text = self.root.get_screen('secondary_window').ids.read_slider_text
+        self.test_button = self.root.get_screen('secondary_window').ids.test_button
         
         self.circle_bar.text = f'0%'
+        self.read_slider_text.text = f'0 %'
+        self.manip_button.text = f'M: x'
         
         self.per_button_pressed = True
         self.km_button_pressed = False
@@ -84,6 +88,7 @@ class Main(MDApp):
         self.slider_label = 'slider'
         self.slider_value = 0
         self.slider_flag = False
+        self.test_counter = 0
         
     def get_permissions(self):
     	# Request permissions on Android
@@ -144,6 +149,7 @@ class Main(MDApp):
         # print(value)
         label = 'slider'
         if self.per_button_pressed:
+            self.read_slider_text.text = f'{value} %'
             value = int(180 * value / 100)
             label = 'slider_per'
         if self.km_button_pressed:
@@ -153,9 +159,8 @@ class Main(MDApp):
         self.slider_value = value
         if label == 'slider_km':
             self.sp_button.text = f'SP: {value}'
-            self.read_slider_text = f'{value} km/h'
-        elif label == 'slider_per':
-            self.read_slider_text = f'{value} %'
+            self.read_slider_text.text = f'{value} km/h'
+            
             
         if value == self.root.get_screen('secondary_window').ids.adapt_slider.max:
             self.root.get_screen('secondary_window').ids.adapt_slider.hint_text_color = "red"
@@ -175,10 +180,12 @@ class Main(MDApp):
         except asyncio.QueueFull:
             pass
             
+    		
     def slider_unit_km(self, touch: bool) -> None:
         if touch:
             self.km_button_pressed = True
             self.per_button_pressed = False
+            self.read_slider_text.text = f'0 km/h'
             self.root.get_screen('secondary_window').ids.adapt_slider.value = 0
             self.root.get_screen('secondary_window').ids.adapt_slider.max = 40
             self.root.get_screen('secondary_window').ids.adapt_slider.step = 1
@@ -190,6 +197,7 @@ class Main(MDApp):
         if touch:
             self.km_button_pressed = False
             self.per_button_pressed = True
+            self.read_slider_text.text = f'0 %'
             self.root.get_screen('secondary_window').ids.adapt_slider.value = 0
             self.root.get_screen('secondary_window').ids.adapt_slider.max = 100
             self.root.get_screen('secondary_window').ids.adapt_slider.step = 5
@@ -206,6 +214,11 @@ class Main(MDApp):
             	# self._pressed = True
             except Exception as e:
             	print(f'EXCEPTION IN ANGLE : {e}')
+            	
+    def test_button_press(self, touch: bool) -> None:
+        if touch:
+            self.test_counter += 1
+            self.test_button.text = f'test: {self.test_counter}'           	
             
     
     async def update_angle_value(self) -> None:
@@ -224,16 +237,15 @@ class Main(MDApp):
 
     async def update_manipulation_value(self) -> None:
         """FOR DEBUGGING PURPOSES"""
-        manip = 0
         while True:
             print('in_manipulation')
             try:
                 manip = await self.man_q.get()
                 manip = int(manip)
-                print(f'manip -> {manip}')
-                self.manip_button.text = f'M: {manip}'
-            except Excception as e:
+                self.manip_button.text = f'M: {manip}' #TODO: convert to percentage
+            except Exception as e:
                 print(f'EXCEPTION IN MANIP: {e}')
+                await asyncio.sleep(1.0)
             
     async def update_speed_value(self) -> None:
         """Monitors current speed of bike"""
