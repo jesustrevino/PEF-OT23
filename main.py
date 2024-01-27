@@ -74,7 +74,7 @@ class Main(MDApp):
         self.speedmeter.font_size_min = self.speedmeter.font_size
         self.sp_button = self.root.get_screen('secondary_window').ids.sp_button
         self.read_slider_text = self.root.get_screen('secondary_window').ids.read_slider_text
-        self.test_button = self.root.get_screen('secondary_window').ids.test_button
+    
         
         self.circle_bar.text = f'0%'
         self.read_slider_text.text = f'0 %'
@@ -214,11 +214,7 @@ class Main(MDApp):
             	# self._pressed = True
             except Exception as e:
             	print(f'EXCEPTION IN ANGLE : {e}')
-            	
-    def test_button_press(self, touch: bool) -> None:
-        if touch:
-            self.test_counter += 1
-            self.test_button.text = f'test: {self.test_counter}'           	
+            	         	
             
     
     async def update_angle_value(self) -> None:
