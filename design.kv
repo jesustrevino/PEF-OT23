@@ -219,16 +219,4 @@ WindowManager:
                         pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                         on_release:
                             app.send_angle(*args)
-        MDBottomNavigationItem:
-            name: 'screen 3'
-            text: 'test'
-            MDFloatLayout:
-                orientation: 'vertical'
-                size: root.width, root.height
-                MDRectangleFlatButton:
-                   id: test_button
-                   text: 'test: 0'
-                   pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                   on_release:
-                      app.test_button_press(*args) 
 
